@@ -2,503 +2,593 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ShiftMatch — Part-Timer Matching</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>WhatsBiz GIG</title>
 <style>
-  :root {
-    --bg: #0f172a;
-    --panel: #1e293b;
-    --panel-2: #273449;
-    --line: #334155;
-    --text: #e2e8f0;
-    --muted: #94a3b8;
-    --brand: #6366f1;
-    --brand-2: #8b5cf6;
-    --good: #22c55e;
-    --mid: #eab308;
-    --bad: #ef4444;
-    --chip: #334155;
-    --radius: 14px;
+  :root{
+    --bg:#0b1220; --app:#0f172a; --card:#1e293b; --card2:#273449; --line:#334155;
+    --text:#e8edf5; --muted:#94a3b8; --brand:#16a34a; --brand2:#22c55e; --accent:#f59e0b;
+    --hot:#ef4444; --good:#22c55e; --mid:#eab308; --bad:#ef4444; --radius:16px;
   }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.5;
-  }
-  header {
-    background: linear-gradient(120deg, var(--brand), var(--brand-2));
-    padding: 22px 20px;
-  }
-  header .inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-  header h1 { margin: 0; font-size: 1.5rem; letter-spacing: -0.5px; }
-  header p { margin: 2px 0 0; color: rgba(255,255,255,.85); font-size: .9rem; }
-  .logo {
-    width: 42px; height: 42px; border-radius: 12px; background: rgba(255,255,255,.18);
-    display: grid; place-items: center; font-size: 22px; flex: none;
-  }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
-  nav.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-  nav.tabs button {
-    background: var(--panel); color: var(--muted); border: 1px solid var(--line);
-    padding: 10px 16px; border-radius: 999px; cursor: pointer; font-size: .92rem; font-weight: 600;
-    transition: .15s;
-  }
-  nav.tabs button:hover { color: var(--text); }
-  nav.tabs button.active { background: var(--brand); color: #fff; border-color: var(--brand); }
-  .tab { display: none; }
-  .tab.active { display: block; }
-  .grid { display: grid; gap: 18px; }
-  @media (min-width: 760px) { .grid.two { grid-template-columns: 360px 1fr; } }
-
-  .card {
-    background: var(--panel); border: 1px solid var(--line);
-    border-radius: var(--radius); padding: 18px;
-  }
-  .card h2 { margin: 0 0 14px; font-size: 1.1rem; }
-  .card h3 { margin: 0 0 10px; font-size: 1rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
-
-  label { display: block; font-size: .82rem; color: var(--muted); margin: 12px 0 5px; font-weight: 600; }
-  input, select {
-    width: 100%; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
-    padding: 10px 12px; border-radius: 10px; font-size: .95rem; font-family: inherit;
-  }
-  input:focus, select:focus { outline: 2px solid var(--brand); border-color: var(--brand); }
-  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 6px; }
-  .chips .opt {
-    background: var(--chip); border: 1px solid var(--line); color: var(--muted);
-    padding: 6px 11px; border-radius: 999px; cursor: pointer; font-size: .82rem; user-select: none;
-    transition: .12s;
-  }
-  .chips .opt.sel { background: var(--brand); border-color: var(--brand); color: #fff; }
-  .row { display: flex; gap: 10px; }
-  .row > * { flex: 1; }
-  button.primary {
-    margin-top: 16px; width: 100%; background: var(--brand); color: #fff; border: none;
-    padding: 12px; border-radius: 10px; font-weight: 700; font-size: .95rem; cursor: pointer;
-  }
-  button.primary:hover { background: #4f46e5; }
-  button.ghost {
-    background: transparent; border: 1px solid var(--line); color: var(--muted);
-    padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: .82rem; font-weight: 600;
-  }
-  button.ghost:hover { color: var(--text); border-color: var(--muted); }
-
-  .toolbar { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; }
-  .toolbar .actions { display: flex; gap: 8px; }
-
-  .list { display: grid; gap: 12px; }
-  .item {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px;
-  }
-  .item .top { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
-  .item .title { font-weight: 700; font-size: 1.02rem; }
-  .item .sub { color: var(--muted); font-size: .85rem; margin-top: 2px; }
-  .item .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-  .tag {
-    background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
-    padding: 3px 9px; border-radius: 999px; font-size: .75rem;
-  }
-  .tag.pay { color: var(--good); border-color: rgba(34,197,94,.4); }
-  .pill {
-    font-weight: 800; font-size: .85rem; padding: 5px 11px; border-radius: 999px; white-space: nowrap;
-  }
-  .pill.good { background: rgba(34,197,94,.15); color: var(--good); }
-  .pill.mid  { background: rgba(234,179,8,.15); color: var(--mid); }
-  .pill.bad  { background: rgba(239,68,68,.15); color: var(--bad); }
-
-  .empty { color: var(--muted); text-align: center; padding: 30px; border: 1px dashed var(--line); border-radius: 12px; }
-
-  .match-head { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
-  .match-head select { max-width: 360px; }
-
-  .bars { margin-top: 12px; display: grid; gap: 7px; }
-  .bar-row { display: grid; grid-template-columns: 90px 1fr 40px; align-items: center; gap: 8px; font-size: .78rem; color: var(--muted); }
-  .track { background: var(--panel-2); border-radius: 999px; height: 8px; overflow: hidden; }
-  .fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--brand), var(--brand-2)); }
-  .why { font-size: .8rem; color: var(--muted); margin-top: 10px; }
-  .why b { color: var(--text); }
-  footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 24px; }
-  .count { background: var(--panel-2); border-radius: 999px; padding: 1px 9px; font-size: .78rem; color: var(--muted); margin-left: 6px; }
-  .del { color: var(--bad); background: transparent; border: none; cursor: pointer; font-size: .8rem; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#020617;color:var(--text);
+    display:flex;justify-content:center;}
+  .phone{width:100%;max-width:460px;background:var(--app);min-height:100vh;display:flex;flex-direction:column;position:relative;box-shadow:0 0 60px rgba(0,0,0,.5);}
+  /* header */
+  header{background:linear-gradient(120deg,var(--brand),#15803d);padding:14px 16px 12px;position:sticky;top:0;z-index:5;}
+  .hrow{display:flex;align-items:center;gap:10px;}
+  .brand{font-weight:800;font-size:1.25rem;letter-spacing:-.3px;}
+  .brand small{font-weight:600;opacity:.9;background:rgba(255,255,255,.2);padding:2px 7px;border-radius:6px;font-size:.6rem;vertical-align:middle;margin-left:4px;}
+  .tagline{font-size:.78rem;color:rgba(255,255,255,.9);margin-top:2px;}
+  .lang{margin-left:auto;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:9px;padding:6px 8px;font-size:.82rem;font-weight:600;}
+  .lang option{color:#111;}
+  .roles{display:flex;gap:6px;margin-top:12px;background:rgba(0,0,0,.18);padding:4px;border-radius:12px;}
+  .roles button{flex:1;border:none;background:transparent;color:rgba(255,255,255,.8);font-weight:700;padding:9px;border-radius:9px;cursor:pointer;font-size:.92rem;}
+  .roles button.on{background:#fff;color:#15803d;}
+  /* content */
+  main{flex:1;overflow-y:auto;padding:14px 14px 90px;}
+  .bn{position:sticky;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--line);}
+  .bn button{flex:1;background:none;border:none;color:var(--muted);padding:10px 4px 12px;font-size:.7rem;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .bn button .ic{font-size:1.25rem;}
+  .bn button.on{color:var(--brand2);}
+  /* generic */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+  .muted{color:var(--muted);} .sm{font-size:.82rem;} .xs{font-size:.74rem;}
+  h2{margin:2px 0 12px;font-size:1.15rem;} h3{margin:0 0 8px;font-size:.95rem;}
+  label{display:block;font-size:.82rem;color:var(--muted);font-weight:600;margin:11px 0 5px;}
+  input,select,textarea{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--text);
+    padding:12px;border-radius:11px;font-size:1rem;font-family:inherit;}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--brand2);border-color:var(--brand2);}
+  .row{display:flex;gap:9px;} .row>*{flex:1;}
+  .btn{width:100%;border:none;border-radius:12px;padding:13px;font-weight:800;font-size:1rem;cursor:pointer;background:var(--brand);color:#fff;}
+  .btn:active{transform:scale(.99);}
+  .btn.alt{background:var(--card2);color:var(--text);border:1px solid var(--line);}
+  .btn.amber{background:var(--accent);color:#111;}
+  .btn.red{background:transparent;color:var(--bad);border:1px solid rgba(239,68,68,.4);}
+  .btn.sm{padding:9px;font-size:.85rem;border-radius:10px;width:auto;}
+  .ghost{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:9px;padding:7px 11px;font-size:.8rem;font-weight:600;cursor:pointer;}
+  .pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:.72rem;font-weight:700;}
+  .pill.hot{background:rgba(239,68,68,.18);color:#fca5a5;}
+  .pill.amber{background:rgba(245,158,11,.18);color:#fcd34d;}
+  .pill.green{background:rgba(34,197,94,.18);color:#86efac;}
+  .pill.blue{background:rgba(99,102,241,.18);color:#c4b5fd;}
+  .pill.gray{background:var(--card2);color:var(--muted);}
+  .verified{color:#38bdf8;font-weight:700;}
+  /* job card */
+  .job .jt{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;}
+  .job .name{font-weight:800;font-size:1.08rem;line-height:1.2;}
+  .job .pay{font-weight:900;color:var(--brand2);font-size:1.15rem;white-space:nowrap;}
+  .job .meta{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0;color:var(--muted);font-size:.85rem;}
+  .job .emp{display:flex;align-items:center;gap:6px;font-size:.84rem;color:var(--muted);margin-bottom:4px;}
+  .spots{font-size:.8rem;}
+  .filters{display:flex;gap:7px;overflow-x:auto;padding-bottom:10px;margin-bottom:4px;}
+  .filters button{white-space:nowrap;background:var(--card);border:1px solid var(--line);color:var(--muted);
+    border-radius:999px;padding:7px 13px;font-size:.82rem;font-weight:600;cursor:pointer;}
+  .filters button.on{background:var(--brand);border-color:var(--brand);color:#fff;}
+  /* reliability */
+  .rel{display:inline-flex;align-items:center;gap:5px;font-weight:800;font-size:.85rem;}
+  .rel.g{color:var(--good);} .rel.m{color:var(--mid);} .rel.b{color:var(--bad);}
+  .avatar{width:46px;height:46px;border-radius:50%;background:var(--card2);display:grid;place-items:center;font-size:1.6rem;flex:none;}
+  .applicant{display:flex;gap:11px;align-items:center;padding:11px 0;border-top:1px solid var(--line);}
+  .applicant:first-child{border-top:none;}
+  .empty{text-align:center;color:var(--muted);padding:36px 16px;border:1px dashed var(--line);border-radius:14px;}
+  .stat{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:.92rem;}
+  .stat:last-child{border-bottom:none;}
+  .stars{font-size:1.3rem;letter-spacing:2px;cursor:pointer;}
+  /* modal */
+  .ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:20;}
+  .sheet{background:var(--app);width:100%;max-width:460px;border-radius:20px 20px 0 0;padding:18px 16px 24px;max-height:85vh;overflow:auto;border-top:1px solid var(--line);}
+  .sheet h3{font-size:1.1rem;margin-bottom:4px;}
+  .grab{width:40px;height:4px;background:var(--line);border-radius:99px;margin:0 auto 12px;}
+  /* chat */
+  .msgs{display:flex;flex-direction:column;gap:8px;margin:12px 0;min-height:120px;max-height:46vh;overflow:auto;padding:4px;}
+  .bub{max-width:78%;padding:9px 12px;border-radius:14px;font-size:.9rem;line-height:1.35;}
+  .bub.me{align-self:flex-end;background:var(--brand);color:#fff;border-bottom-right-radius:4px;}
+  .bub.them{align-self:flex-start;background:var(--card2);border-bottom-left-radius:4px;}
+  .bub .who{font-size:.66rem;opacity:.7;margin-bottom:1px;}
+  .chatform{display:flex;gap:8px;}
+  .chatform input{flex:1;}
+  .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#111827;border:1px solid var(--line);color:#fff;padding:11px 16px;border-radius:12px;font-size:.88rem;z-index:40;box-shadow:0 8px 24px rgba(0,0,0,.4);}
 </style>
 </head>
 <body>
-<header>
-  <div class="inner">
-    <div class="logo">⚡</div>
-    <div>
-      <h1>ShiftMatch</h1>
-      <p>Match part-timers to shifts by skills, location, availability &amp; pay.</p>
-    </div>
-  </div>
-</header>
-
-<div class="wrap">
-  <nav class="tabs">
-    <button data-tab="match" class="active">🔎 Browse &amp; Match</button>
-    <button data-tab="jobs">📋 Post a Job <span class="count" id="jobCount">0</span></button>
-    <button data-tab="workers">🙋 Add a Worker <span class="count" id="workerCount">0</span></button>
-  </nav>
-
-  <!-- MATCH TAB -->
-  <section class="tab active" id="tab-match">
-    <div class="card">
-      <div class="match-head">
-        <strong>Find best</strong>
-        <select id="matchMode">
-          <option value="job">workers for a job</option>
-          <option value="worker">jobs for a worker</option>
-        </select>
-        <select id="matchTarget"></select>
-      </div>
-      <div id="matchResults" class="list"></div>
-    </div>
-  </section>
-
-  <!-- JOBS TAB -->
-  <section class="tab" id="tab-jobs">
-    <div class="grid two">
-      <div class="card">
-        <h2>Post a job</h2>
-        <label>Job title</label>
-        <input id="j_title" placeholder="e.g. Weekend Barista" />
-        <label>Employer / venue</label>
-        <input id="j_emp" placeholder="e.g. Bluebird Café" />
-        <label>Required skills / role</label>
-        <div class="chips" id="j_skills"></div>
-        <label>Area</label>
-        <select id="j_area"></select>
-        <div class="row">
-          <div>
-            <label>Pay offered ($/hr)</label>
-            <input id="j_pay" type="number" min="0" step="0.5" placeholder="18" />
-          </div>
-        </div>
-        <label>Days needed</label>
-        <div class="chips" id="j_days"></div>
-        <label>Time slots</label>
-        <div class="chips" id="j_slots"></div>
-        <button class="primary" id="j_add">Post job</button>
-      </div>
+<div class="phone">
+  <header>
+    <div class="hrow">
       <div>
-        <div class="toolbar">
-          <h3 style="margin:0">Open jobs</h3>
-          <div class="actions">
-            <button class="ghost" id="seedBtn">Load demo data</button>
-            <button class="ghost" id="clearBtn">Clear all</button>
-          </div>
-        </div>
-        <div id="jobList" class="list"></div>
+        <div class="brand">WhatsBiz <small>GIG</small></div>
+        <div class="tagline" id="tagline"></div>
       </div>
+      <select class="lang" id="lang">
+        <option value="en">English</option>
+        <option value="ms">Bahasa</option>
+        <option value="zh">中文</option>
+        <option value="bn">বাংলা</option>
+      </select>
     </div>
-  </section>
-
-  <!-- WORKERS TAB -->
-  <section class="tab" id="tab-workers">
-    <div class="grid two">
-      <div class="card">
-        <h2>Add a worker</h2>
-        <label>Name</label>
-        <input id="w_name" placeholder="e.g. Alex Tan" />
-        <label>Skills / roles</label>
-        <div class="chips" id="w_skills"></div>
-        <label>Preferred area</label>
-        <select id="w_area"></select>
-        <div class="row">
-          <div>
-            <label>Desired pay ($/hr)</label>
-            <input id="w_pay" type="number" min="0" step="0.5" placeholder="16" />
-          </div>
-        </div>
-        <label>Available days</label>
-        <div class="chips" id="w_days"></div>
-        <label>Available time slots</label>
-        <div class="chips" id="w_slots"></div>
-        <button class="primary" id="w_add">Add worker</button>
-      </div>
-      <div>
-        <div class="toolbar"><h3 style="margin:0">Workers</h3></div>
-        <div id="workerList" class="list"></div>
-      </div>
-    </div>
-  </section>
+    <div class="roles" id="roles"></div>
+  </header>
+  <main id="app"></main>
+  <nav class="bn" id="nav"></nav>
 </div>
 
-<footer>ShiftMatch · data is saved locally in your browser (localStorage)</footer>
-
 <script>
-// ---------- Shared option lists ----------
-const SKILLS = ["Café / Barista","Cashier / Retail","Food Delivery","Waiter / Server",
-  "Kitchen Help","Tutoring","Warehouse","Event Staff","Cleaning","Admin / Office"];
-const AREAS  = ["Downtown","North","South","East","West","Central"];
-const DAYS   = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-const SLOTS  = ["Morning","Afternoon","Evening","Night"];
-
-// Scoring weights (sum = 100)
-const WEIGHTS = { skills: 35, availability: 30, location: 15, pay: 20 };
-
-// ---------- State ----------
-const store = {
-  jobs: JSON.parse(localStorage.getItem("sm_jobs") || "[]"),
-  workers: JSON.parse(localStorage.getItem("sm_workers") || "[]"),
+// ============ i18n ============
+const T = {
+  en:{tagline:"Find Work Today. Find Staff Today.",
+    roleWorker:"Find Work",roleEmployer:"Hire Staff",
+    w_jobs:"Jobs",w_apps:"My Jobs",w_profile:"Profile",
+    e_post:"Post",e_jobs:"My Jobs",e_biz:"Business",
+    near:"Nearby",urgentOnly:"⚡ Urgent",all:"All",within:"Within",
+    kmAway:"km away",here:"nearby",spotsLeft:"spots left",full:"FULL",
+    apply:"Apply",applyAlone:"Apply alone",applyFriend:"Apply with a friend",chooseFriend:"Or bring a friend",howApply:"How do you want to apply?",
+    appliedBadge:"Applied ✓",applied:"Waiting",accepted:"Accepted",declined:"Declined",completed:"Completed",noshow:"No-show",
+    today:"TODAY",tomorrow:"TOMORROW",verified:"Verified",new:"New",reliable:"reliable",
+    reliability:"Reliability",completedJobs:"Completed jobs",noshows:"No-shows",
+    postTitle:"Post a job in 30 seconds",
+    fTitle:"Job title",fLoc:"Location",fDate:"Date",fTime:"Time",fPay:"Pay",fNeeded:"Number needed",fUrg:"When?",
+    uToday:"⚡ Need staff TODAY",uTomorrow:"⚡ Need staff TOMORROW",uNormal:"Normal",publish:"Publish job",
+    applicants:"applicants",accept:"Accept",decline:"Decline",complete:"✓ Showed up",markNoshow:"No-show",chat:"💬",
+    noJobs:"No jobs in this range. Try a wider distance.",noApps:"You haven't applied yet — browse jobs and tap Apply!",
+    noMyJobs:"No jobs posted yet. Tap Post to hire in 30 seconds.",noApplicants:"No applicants yet.",
+    name:"Name",age:"Age",languages:"Languages",actingAs:"Demo: act as",
+    bizName:"Business",jobsPosted:"Jobs posted",completionRate:"Completion rate",avgRating:"Avg rating",
+    send:"Send",typeMsg:"Type a message…",you:"You",friend:"friend",
+    rateThis:"Rate this employer:",rated:"You rated",loadDemo:"Load demo",clearAll:"Clear all",
+    needPax:"Need",pax:"pax",appliedToast:"Applied! The employer can see you now.",postedToast:"Job posted! Workers can see it now.",
+    spotsFilled:"filled",chatWith:"Chat",reviews:"reviews"},
+  ms:{tagline:"Cari Kerja Hari Ini. Cari Pekerja Hari Ini.",
+    roleWorker:"Cari Kerja",roleEmployer:"Cari Pekerja",
+    w_jobs:"Kerja",w_apps:"Kerja Saya",w_profile:"Profil",
+    e_post:"Iklan",e_jobs:"Iklan Saya",e_biz:"Perniagaan",
+    near:"Berdekatan",urgentOnly:"⚡ Segera",all:"Semua",within:"Dalam",
+    kmAway:"km jauh",here:"dekat",spotsLeft:"kekosongan",full:"PENUH",
+    apply:"Mohon",applyAlone:"Mohon sendiri",applyFriend:"Mohon dengan kawan",chooseFriend:"Atau bawa kawan",howApply:"Bagaimana anda mahu mohon?",
+    appliedBadge:"Telah mohon ✓",applied:"Menunggu",accepted:"Diterima",declined:"Ditolak",completed:"Selesai",noshow:"Tak hadir",
+    today:"HARI INI",tomorrow:"ESOK",verified:"Disahkan",new:"Baru",reliable:"boleh percaya",
+    reliability:"Kebolehpercayaan",completedJobs:"Kerja selesai",noshows:"Tak hadir",
+    postTitle:"Iklan kerja dalam 30 saat",
+    fTitle:"Nama kerja",fLoc:"Lokasi",fDate:"Tarikh",fTime:"Masa",fPay:"Gaji",fNeeded:"Bilangan diperlukan",fUrg:"Bila?",
+    uToday:"⚡ Perlu HARI INI",uTomorrow:"⚡ Perlu ESOK",uNormal:"Biasa",publish:"Siar iklan",
+    applicants:"pemohon",accept:"Terima",decline:"Tolak",complete:"✓ Hadir",markNoshow:"Tak hadir",chat:"💬",
+    noJobs:"Tiada kerja dalam jarak ini. Cuba lebih jauh.",noApps:"Anda belum memohon — lihat kerja dan tekan Mohon!",
+    noMyJobs:"Belum ada iklan. Tekan Iklan untuk upah dalam 30 saat.",noApplicants:"Belum ada pemohon.",
+    name:"Nama",age:"Umur",languages:"Bahasa",actingAs:"Demo: jadi",
+    bizName:"Perniagaan",jobsPosted:"Iklan disiar",completionRate:"Kadar selesai",avgRating:"Penilaian",
+    send:"Hantar",typeMsg:"Taip mesej…",you:"Anda",friend:"kawan",
+    rateThis:"Nilai majikan ini:",rated:"Anda beri",loadDemo:"Muat contoh",clearAll:"Padam semua",
+    needPax:"Perlu",pax:"orang",appliedToast:"Telah mohon! Majikan boleh nampak anda.",postedToast:"Iklan disiar! Pekerja boleh nampak.",
+    spotsFilled:"diisi",chatWith:"Sembang",reviews:"ulasan"},
+  zh:{tagline:"今天找工作。今天找员工。",
+    roleWorker:"找工作",roleEmployer:"招员工",
+    w_jobs:"工作",w_apps:"我的工作",w_profile:"个人",
+    e_post:"发布",e_jobs:"我的招聘",e_biz:"商家",
+    near:"附近",urgentOnly:"⚡ 急聘",all:"全部",within:"范围",
+    kmAway:"公里",here:"附近",spotsLeft:"空缺",full:"已满",
+    apply:"申请",applyAlone:"单独申请",applyFriend:"和朋友一起",chooseFriend:"或带上朋友",howApply:"你想怎样申请？",
+    appliedBadge:"已申请 ✓",applied:"等待中",accepted:"已录取",declined:"已拒绝",completed:"已完成",noshow:"缺席",
+    today:"今天",tomorrow:"明天",verified:"已认证",new:"新",reliable:"可靠",
+    reliability:"可靠度",completedJobs:"完成工作",noshows:"缺席次数",
+    postTitle:"30秒发布工作",
+    fTitle:"工作名称",fLoc:"地点",fDate:"日期",fTime:"时间",fPay:"薪水",fNeeded:"需要人数",fUrg:"何时？",
+    uToday:"⚡ 今天需要",uTomorrow:"⚡ 明天需要",uNormal:"普通",publish:"发布工作",
+    applicants:"位申请",accept:"录取",decline:"拒绝",complete:"✓ 出席",markNoshow:"缺席",chat:"💬",
+    noJobs:"此范围没有工作。试试更远。",noApps:"你还没申请——看看工作并点击申请！",
+    noMyJobs:"还没有发布。点击发布，30秒招人。",noApplicants:"还没有申请者。",
+    name:"姓名",age:"年龄",languages:"语言",actingAs:"演示：身份",
+    bizName:"商家",jobsPosted:"已发布",completionRate:"完成率",avgRating:"平均评分",
+    send:"发送",typeMsg:"输入信息…",you:"你",friend:"朋友",
+    rateThis:"评价这位雇主：",rated:"你给了",loadDemo:"加载示例",clearAll:"清除全部",
+    needPax:"需要",pax:"人",appliedToast:"已申请！雇主可以看到你了。",postedToast:"已发布！工人可以看到了。",
+    spotsFilled:"已满",chatWith:"聊天",reviews:"评价"},
+  bn:{tagline:"আজই কাজ খুঁজুন। আজই কর্মী খুঁজুন।",
+    roleWorker:"কাজ খুঁজুন",roleEmployer:"কর্মী নিন",
+    w_jobs:"কাজ",w_apps:"আমার কাজ",w_profile:"প্রোফাইল",
+    e_post:"পোস্ট",e_jobs:"আমার পোস্ট",e_biz:"ব্যবসা",
+    near:"কাছাকাছি",urgentOnly:"⚡ জরুরি",all:"সব",within:"মধ্যে",
+    kmAway:"কিমি দূরে",here:"কাছে",spotsLeft:"খালি পদ",full:"পূর্ণ",
+    apply:"আবেদন",applyAlone:"একা আবেদন",applyFriend:"বন্ধুর সাথে",chooseFriend:"অথবা বন্ধু আনুন",howApply:"কিভাবে আবেদন করবেন?",
+    appliedBadge:"আবেদন করা ✓",applied:"অপেক্ষায়",accepted:"গৃহীত",declined:"প্রত্যাখ্যাত",completed:"সম্পন্ন",noshow:"অনুপস্থিত",
+    today:"আজ",tomorrow:"আগামীকাল",verified:"যাচাইকৃত",new:"নতুন",reliable:"নির্ভরযোগ্য",
+    reliability:"নির্ভরযোগ্যতা",completedJobs:"সম্পন্ন কাজ",noshows:"অনুপস্থিতি",
+    postTitle:"৩০ সেকেন্ডে কাজ পোস্ট করুন",
+    fTitle:"কাজের নাম",fLoc:"স্থান",fDate:"তারিখ",fTime:"সময়",fPay:"বেতন",fNeeded:"কতজন দরকার",fUrg:"কখন?",
+    uToday:"⚡ আজ দরকার",uTomorrow:"⚡ আগামীকাল দরকার",uNormal:"সাধারণ",publish:"কাজ প্রকাশ",
+    applicants:"আবেদনকারী",accept:"গ্রহণ",decline:"প্রত্যাখ্যান",complete:"✓ উপস্থিত",markNoshow:"অনুপস্থিত",chat:"💬",
+    noJobs:"এই দূরত্বে কাজ নেই। বেশি দূরত্ব দেখুন।",noApps:"আপনি এখনো আবেদন করেননি — কাজ দেখে আবেদন করুন!",
+    noMyJobs:"এখনো পোস্ট নেই। ৩০ সেকেন্ডে কর্মী নিন।",noApplicants:"এখনো আবেদনকারী নেই।",
+    name:"নাম",age:"বয়স",languages:"ভাষা",actingAs:"ডেমো: হিসেবে",
+    bizName:"ব্যবসা",jobsPosted:"পোস্ট করা",completionRate:"সম্পন্নের হার",avgRating:"গড় রেটিং",
+    send:"পাঠান",typeMsg:"বার্তা লিখুন…",you:"আপনি",friend:"বন্ধু",
+    rateThis:"এই নিয়োগকর্তাকে রেট দিন:",rated:"আপনি দিয়েছেন",loadDemo:"নমুনা লোড",clearAll:"সব মুছুন",
+    needPax:"দরকার",pax:"জন",appliedToast:"আবেদন হয়েছে! নিয়োগকর্তা এখন দেখতে পাবেন।",postedToast:"পোস্ট হয়েছে! কর্মীরা দেখতে পাবেন।",
+    spotsFilled:"পূর্ণ",chatWith:"চ্যাট",reviews:"রিভিউ"},
 };
-function save() {
-  localStorage.setItem("sm_jobs", JSON.stringify(store.jobs));
-  localStorage.setItem("sm_workers", JSON.stringify(store.workers));
-}
-const uid = () => Math.random().toString(36).slice(2, 9);
+let lang = localStorage.getItem("wg_lang") || "en";
+const t = k => (T[lang][k] ?? T.en[k] ?? k);
 
-// ---------- Chip + select builders ----------
-function buildChips(containerId, options) {
-  const el = document.getElementById(containerId);
-  el.innerHTML = "";
-  options.forEach(opt => {
-    const d = document.createElement("div");
-    d.className = "opt";
-    d.textContent = opt;
-    d.dataset.value = opt;
-    d.onclick = () => d.classList.toggle("sel");
-    el.appendChild(d);
-  });
+// ============ Towns (Penang) for distance ============
+const TOWNS = {
+  georgetown:{n:"Georgetown",xy:[5,18]}, tanjung:{n:"Tanjung Tokong",xy:[4,21]},
+  gelugor:{n:"Gelugor",xy:[5,13]}, bayanlepas:{n:"Bayan Lepas",xy:[4,5]},
+  butterworth:{n:"Butterworth",xy:[12,17]}, bukitmertajam:{n:"Bukit Mertajam",xy:[16,12]},
+};
+const townName = k => (TOWNS[k]?.n || k);
+function dist(a,b){ const A=TOWNS[a]?.xy,B=TOWNS[b]?.xy; if(!A||!B) return 99;
+  return Math.round(Math.hypot(A[0]-B[0],A[1]-B[1])); }
+
+// ============ State ============
+const DB = {
+  workers: JSON.parse(localStorage.getItem("wg_workers")||"null"),
+  employers: JSON.parse(localStorage.getItem("wg_employers")||"null"),
+  jobs: JSON.parse(localStorage.getItem("wg_jobs")||"null"),
+  apps: JSON.parse(localStorage.getItem("wg_apps")||"null"),
+  msgs: JSON.parse(localStorage.getItem("wg_msgs")||"null"),
+};
+const S = { role:"worker", workerId:"me", employerId:"e1", tab:"jobs", dist:"all", urgent:false, modal:null, toast:null };
+const uid = () => Math.random().toString(36).slice(2,9);
+function save(){ for(const k of ["workers","employers","jobs","apps","msgs"]) localStorage.setItem("wg_"+k, JSON.stringify(DB[k])); }
+
+function seed(){
+  DB.workers = [
+    {id:"me",  name:"You",      age:24, photo:"🧑", langs:["English","Malay"],   town:"georgetown",   completed:5,  noshow:0},
+    {id:"w2",  name:"Rahman",   age:28, photo:"👨", langs:["Bengali","Malay"],   town:"gelugor",      completed:42, noshow:1},
+    {id:"w3",  name:"Mei Ling", age:22, photo:"👩", langs:["Chinese","English"], town:"georgetown",   completed:18, noshow:0},
+    {id:"w4",  name:"Arjun",    age:25, photo:"🧔", langs:["Tamil","English"],   town:"butterworth",  completed:7,  noshow:3},
+    {id:"w5",  name:"Siti",     age:20, photo:"👧", langs:["Malay"],             town:"bayanlepas",   completed:0,  noshow:0},
+  ];
+  DB.employers = [ {id:"e1", biz:"StageWorks Events", verified:true, ratingSum:23, ratingCount:5} ];
+  DB.jobs = [
+    {id:"j1", empId:"e1", title:"Event Crew",      town:"georgetown",   date:"Sat 20 Aug", time:"8am – 6pm",  pay:"RM120/day",  needed:15, urg:"today"},
+    {id:"j2", empId:"e1", title:"Roadshow Promoter",town:"bayanlepas",  date:"Sun 21 Aug", time:"10am – 8pm", pay:"RM100/day",  needed:5,  urg:"tomorrow"},
+    {id:"j3", empId:"e1", title:"Wedding Waiter",   town:"bukitmertajam",date:"Sat 27 Aug", time:"5pm – 11pm", pay:"RM90/night", needed:8,  urg:"normal"},
+    {id:"j4", empId:"e1", title:"Warehouse Helper", town:"butterworth", date:"Mon 22 Aug", time:"9am – 5pm",  pay:"RM15/hour",  needed:3,  urg:"normal"},
+  ];
+  DB.apps = [
+    {id:uid(), jobId:"j1", workerId:"w2", friendId:null, status:"applied"},
+    {id:uid(), jobId:"j1", workerId:"w3", friendId:"w5", status:"applied"},
+    {id:uid(), jobId:"j1", workerId:"w4", friendId:null, status:"accepted"},
+  ];
+  DB.msgs = [ {id:uid(), jobId:"j1", workerId:"w4", from:"employer", text:"Hi, please come to the main gate at 7:45am.", ts:Date.now()-3600000} ];
+  save();
 }
-function readChips(containerId) {
-  return [...document.querySelectorAll(`#${containerId} .opt.sel`)].map(d => d.dataset.value);
+if(!DB.workers){ seed(); }
+
+// ============ Helpers ============
+const W = id => DB.workers.find(w=>w.id===id);
+const E = id => DB.employers.find(e=>e.id===id);
+const J = id => DB.jobs.find(j=>j.id===id);
+const me = () => W(S.workerId);
+function reliability(w){ const tot=w.completed+w.noshow; return tot? Math.round(w.completed/tot*100) : null; }
+function relClass(s){ return s==null?"":(s>=90?"g":s>=70?"m":"b"); }
+function acceptedFill(jobId){ return DB.apps.filter(a=>a.jobId===jobId&&(a.status==="accepted"||a.status==="completed"))
+    .reduce((n,a)=>n+1+(a.friendId?1:0),0); }
+function spotsLeft(job){ return Math.max(0, job.needed - acceptedFill(job.id)); }
+function appsForJob(id){ return DB.apps.filter(a=>a.jobId===id); }
+function myApp(jobId){ return DB.apps.find(a=>a.jobId===jobId && (a.workerId===S.workerId||a.friendId===S.workerId)); }
+function empJobs(eid){ return DB.jobs.filter(j=>j.empId===eid); }
+function esc(s){ return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function toast(msg){ S.toast=msg; render(); clearTimeout(toast._t); toast._t=setTimeout(()=>{S.toast=null;render();},2200); }
+
+// ============ Components ============
+function urgBadge(job){
+  if(job.urg==="today") return `<span class="pill hot">🔥 ${t("today")}</span>`;
+  if(job.urg==="tomorrow") return `<span class="pill amber">⚡ ${t("tomorrow")}</span>`;
+  return "";
 }
-function clearChips(containerId) {
-  document.querySelectorAll(`#${containerId} .opt`).forEach(d => d.classList.remove("sel"));
+function relChip(w){
+  const s=reliability(w);
+  if(s==null) return `<span class="pill blue">✨ ${t("new")}</span>`;
+  return `<span class="rel ${relClass(s)}">⭐ ${s}%</span>`;
 }
-function fillSelect(id, options, includeAny) {
-  const el = document.getElementById(id);
-  el.innerHTML = "";
-  if (includeAny) el.add(new Option("Anywhere", "Anywhere"));
-  options.forEach(o => el.add(new Option(o, o)));
+function distLabel(job){ const d=dist(me().town, job.town); return d<=1? t("here") : `${d} ${t("kmAway")}`; }
+
+// ---- Worker: job card ----
+function jobCard(job){
+  const left=spotsLeft(job), mine=myApp(job.id);
+  let action;
+  if(mine) action=`<button class="btn alt" disabled>${t("appliedBadge")}</button>`;
+  else if(left<=0) action=`<button class="btn alt" disabled>${t("full")}</button>`;
+  else action=`<button class="btn" data-act="openApply" data-id="${job.id}">${t("apply")}</button>`;
+  return `<div class="card job">
+    <div class="emp">🏢 ${esc(E(job.empId).biz)} ${E(job.empId).verified?`<span class="verified">✔ ${t("verified")}</span>`:""}</div>
+    <div class="jt"><div class="name">${urgBadge(job)} ${esc(job.title)}</div><div class="pay">${esc(job.pay)}</div></div>
+    <div class="meta">
+      <span>📅 ${esc(job.date)}</span><span>🕒 ${esc(job.time)}</span>
+      <span>📍 ${esc(townName(job.town))} · ${distLabel(job)}</span>
+    </div>
+    <div class="spots muted">👥 ${t("needPax")} ${job.needed} ${t("pax")} · <b style="color:var(--brand2)">${left}</b> ${t("spotsLeft")}</div>
+    <div style="margin-top:12px">${action}</div>
+  </div>`;
+}
+function workerJobs(){
+  const meTown=me().town;
+  let jobs=DB.jobs.map(j=>({j,d:dist(meTown,j.town)}));
+  if(S.dist!=="all") jobs=jobs.filter(x=>x.d<=Number(S.dist));
+  if(S.urgent) jobs=jobs.filter(x=>x.j.urg!=="normal");
+  const urgRank={today:0,tomorrow:1,normal:2};
+  jobs.sort((a,b)=> (urgRank[a.j.urg]-urgRank[b.j.urg]) || (a.d-b.d));
+  const chips=[["all",t("all")],["2","2"],["5","5"],["10","10"]];
+  const filt=`<div class="filters">
+    <button data-act="urg" class="${S.urgent?"on":""}">${t("urgentOnly")}</button>
+    ${chips.map(([v,lab])=>`<button data-act="dist" data-v="${v}" class="${S.dist===v?"on":""}">${v==="all"?t("all"):t("within")+" "+lab+"km"}</button>`).join("")}
+  </div>`;
+  const body = jobs.length? jobs.map(x=>jobCard(x.j)).join("") : `<div class="empty">${t("noJobs")}</div>`;
+  return filt+body;
 }
 
-// ---------- Matching engine ----------
-function overlapFraction(needed, have) {
-  if (!needed.length) return 1;            // nothing required => fully satisfied
-  const set = new Set(have);
-  const hit = needed.filter(x => set.has(x)).length;
-  return hit / needed.length;
-}
-function scoreMatch(job, worker) {
-  // Skills: how much of the job's required skills the worker covers
-  const skills = overlapFraction(job.skills, worker.skills) * 100;
-
-  // Availability: average of day-overlap and slot-overlap
-  const dayCov  = overlapFraction(job.days, worker.days);
-  const slotCov = overlapFraction(job.slots, worker.slots);
-  const availability = (dayCov * 0.6 + slotCov * 0.4) * 100;
-
-  // Location: exact area, or worker open to "Anywhere"
-  const location = (worker.area === "Anywhere" || worker.area === job.area) ? 100
-                 : 0;
-
-  // Pay: worker happy if offered >= desired; scaled below that
-  const pay = job.pay >= worker.pay ? 100
-            : worker.pay > 0 ? Math.max(0, Math.round((job.pay / worker.pay) * 100))
-            : 100;
-
-  const total = Math.round(
-    skills * WEIGHTS.skills / 100 +
-    availability * WEIGHTS.availability / 100 +
-    location * WEIGHTS.location / 100 +
-    pay * WEIGHTS.pay / 100
-  );
-  return { total, parts: { skills: Math.round(skills), availability: Math.round(availability), location, pay } };
-}
-function pillClass(score) { return score >= 75 ? "good" : score >= 45 ? "mid" : "bad"; }
-
-// ---------- Rendering: lists ----------
-function metaTags(o) {
-  const tags = [];
-  o.skills.forEach(s => tags.push(`<span class="tag">${s}</span>`));
-  tags.push(`<span class="tag">📍 ${o.area}</span>`);
-  tags.push(`<span class="tag pay">$${o.pay}/hr</span>`);
-  if (o.days.length)  tags.push(`<span class="tag">📅 ${o.days.join(" ")}</span>`);
-  if (o.slots.length) tags.push(`<span class="tag">🕑 ${o.slots.join(", ")}</span>`);
-  return `<div class="meta">${tags.join("")}</div>`;
-}
-function renderJobs() {
-  const el = document.getElementById("jobList");
-  document.getElementById("jobCount").textContent = store.jobs.length;
-  if (!store.jobs.length) { el.innerHTML = `<div class="empty">No jobs yet. Post one or load demo data.</div>`; return; }
-  el.innerHTML = store.jobs.map(j => `
-    <div class="item">
-      <div class="top">
-        <div><div class="title">${esc(j.title)}</div><div class="sub">${esc(j.emp || "")}</div></div>
-        <button class="del" data-del-job="${j.id}">remove</button>
-      </div>
-      ${metaTags(j)}
-    </div>`).join("");
-  el.querySelectorAll("[data-del-job]").forEach(b => b.onclick = () => {
-    store.jobs = store.jobs.filter(x => x.id !== b.dataset.delJob); save(); renderAll();
-  });
-}
-function renderWorkers() {
-  const el = document.getElementById("workerList");
-  document.getElementById("workerCount").textContent = store.workers.length;
-  if (!store.workers.length) { el.innerHTML = `<div class="empty">No workers yet. Add one or load demo data.</div>`; return; }
-  el.innerHTML = store.workers.map(w => `
-    <div class="item">
-      <div class="top">
-        <div><div class="title">${esc(w.name)}</div></div>
-        <button class="del" data-del-worker="${w.id}">remove</button>
-      </div>
-      ${metaTags(w)}
-    </div>`).join("");
-  el.querySelectorAll("[data-del-worker]").forEach(b => b.onclick = () => {
-    store.workers = store.workers.filter(x => x.id !== b.dataset.delWorker); save(); renderAll();
-  });
+// ---- Worker: my applications ----
+function workerApps(){
+  const mine=DB.apps.filter(a=>a.workerId===S.workerId||a.friendId===S.workerId);
+  if(!mine.length) return `<div class="empty">${t("noApps")}</div>`;
+  const statusPill={applied:"gray",accepted:"green",declined:"red",completed:"blue",noshow:"red"};
+  return mine.map(a=>{
+    const job=J(a.jobId); if(!job) return "";
+    const buddy=a.friendId? ` <span class="pill blue">+1 ${t("friend")}</span>`:"";
+    let rate="";
+    if(a.status==="completed"){
+      rate = a.rated
+        ? `<div class="sm muted" style="margin-top:8px">${t("rated")} ${"⭐".repeat(a.rated)}</div>`
+        : `<div style="margin-top:8px"><div class="sm muted">${t("rateThis")}</div>
+            <div class="stars" data-act="rate" data-id="${a.id}">${[1,2,3,4,5].map(n=>`<span data-n="${n}">☆</span>`).join("")}</div></div>`;
+    }
+    return `<div class="card">
+      <div class="jt"><div class="name" style="font-size:1rem">${esc(job.title)}${buddy}</div><div class="pay" style="font-size:1rem">${esc(job.pay)}</div></div>
+      <div class="meta"><span>🏢 ${esc(E(job.empId).biz)}</span><span>📅 ${esc(job.date)}</span><span>📍 ${esc(townName(job.town))}</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <span class="pill ${statusPill[a.status]}">${t(a.status)}</span>
+        <button class="ghost" data-act="chat" data-id="${job.id}" data-w="${a.workerId}">💬 ${t("chatWith")}</button>
+      </div>${rate}
+    </div>`;
+  }).join("");
 }
 
-// ---------- Rendering: matches ----------
-function renderMatchTarget() {
-  const mode = document.getElementById("matchMode").value;
-  const sel = document.getElementById("matchTarget");
-  const items = mode === "job" ? store.jobs : store.workers;
-  sel.innerHTML = "";
-  if (!items.length) { sel.add(new Option(mode === "job" ? "— no jobs —" : "— no workers —", "")); }
-  items.forEach(it => sel.add(new Option(mode === "job" ? `${it.title} · ${it.area}` : `${it.name} · ${it.area}`, it.id)));
+// ---- Worker: profile ----
+function workerProfile(){
+  const w=me(), s=reliability(w);
+  const others=DB.workers.map(x=>`<option value="${x.id}" ${x.id===S.workerId?"selected":""}>${esc(x.name)}</option>`).join("");
+  return `<div class="card" style="text-align:center">
+    <div class="avatar" style="width:74px;height:74px;font-size:2.6rem;margin:4px auto 8px">${w.photo}</div>
+    <div style="font-weight:800;font-size:1.2rem">${esc(w.name)}, ${w.age}</div>
+    <div class="muted sm">🗣️ ${w.langs.join(", ")}</div>
+    <div class="muted sm">📍 ${townName(w.town)}</div>
+    <div style="margin:14px 0">
+      ${s==null?`<span class="pill blue" style="font-size:1rem;padding:8px 16px">✨ ${t("new")}</span>`
+        :`<div class="rel ${relClass(s)}" style="font-size:2.2rem">⭐ ${s}%</div><div class="muted sm">${t("reliability")} · ${t("reliable")}</div>`}
+    </div>
+    <div class="stat"><span class="muted">✅ ${t("completedJobs")}</span><b>${w.completed}</b></div>
+    <div class="stat"><span class="muted">⛔ ${t("noshows")}</span><b>${w.noshow}</b></div>
+  </div>
+  <div class="card">
+    <label>${t("actingAs")}</label>
+    <select data-act="actAs">${others}</select>
+    <div class="row" style="margin-top:14px">
+      <button class="ghost" data-act="loadDemo">${t("loadDemo")}</button>
+      <button class="ghost" data-act="clearAll">${t("clearAll")}</button>
+    </div>
+  </div>`;
 }
-function barRow(label, val) {
-  return `<div class="bar-row"><span>${label}</span><div class="track"><div class="fill" style="width:${val}%"></div></div><span>${val}</span></div>`;
-}
-function renderMatches() {
-  const mode = document.getElementById("matchMode").value;
-  const targetId = document.getElementById("matchTarget").value;
-  const out = document.getElementById("matchResults");
 
-  if (!targetId) {
-    out.innerHTML = `<div class="empty">Add a ${mode === "job" ? "job" : "worker"} first, then pick one above to see ranked matches.</div>`;
-    return;
-  }
-  let results;
-  if (mode === "job") {
-    const job = store.jobs.find(j => j.id === targetId);
-    results = store.workers.map(w => ({ who: w, name: w.name, ...scoreMatch(job, w) }));
+// ---- Employer: post ----
+function employerPost(){
+  const towns=Object.entries(TOWNS).map(([k,v])=>`<option value="${k}">${v.n}</option>`).join("");
+  return `<div class="card"><h2>${t("postTitle")}</h2>
+    <label>${t("fTitle")}</label><input id="p_title" placeholder="Event Crew" />
+    <label>${t("fLoc")}</label><select id="p_town">${towns}</select>
+    <div class="row">
+      <div><label>${t("fDate")}</label><input id="p_date" placeholder="20 Aug" /></div>
+      <div><label>${t("fTime")}</label><input id="p_time" placeholder="8am – 6pm" /></div>
+    </div>
+    <div class="row">
+      <div><label>${t("fPay")}</label><input id="p_pay" placeholder="RM120/day" /></div>
+      <div><label>${t("fNeeded")}</label><input id="p_needed" type="number" min="1" value="1" /></div>
+    </div>
+    <label>${t("fUrg")}</label>
+    <select id="p_urg"><option value="today">${t("uToday")}</option><option value="tomorrow">${t("uTomorrow")}</option><option value="normal" selected>${t("uNormal")}</option></select>
+    <button class="btn" style="margin-top:16px" data-act="publish">${t("publish")}</button>
+  </div>`;
+}
+
+// ---- Employer: my jobs + applicants ----
+function applicantRow(a){
+  const w=W(a.workerId); if(!w) return "";
+  const friend=a.friendId?W(a.friendId):null;
+  let act="";
+  if(a.status==="applied") act=`<div class="row" style="gap:6px;margin-top:8px">
+      <button class="btn sm" style="flex:1" data-act="accept" data-id="${a.id}">${t("accept")}</button>
+      <button class="btn sm red" style="flex:1" data-act="decline" data-id="${a.id}">${t("decline")}</button></div>`;
+  else if(a.status==="accepted") act=`<div class="row" style="gap:6px;margin-top:8px">
+      <button class="btn sm amber" style="flex:1" data-act="complete" data-id="${a.id}">${t("complete")}</button>
+      <button class="btn sm red" style="flex:1" data-act="noshow" data-id="${a.id}">${t("markNoshow")}</button></div>`;
+  else act=`<div class="sm muted" style="margin-top:6px">${t(a.status)}</div>`;
+  return `<div class="applicant">
+    <div class="avatar">${w.photo}</div>
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:700">${esc(w.name)}${friend?` <span class="pill blue">+ ${esc(friend.name)}</span>`:""}</div>
+      <div class="xs muted">🗣️ ${w.langs.join(", ")} · ✅ ${w.completed} · ⛔ ${w.noshow}</div>
+      ${act}
+    </div>
+    <div style="text-align:right">${relChip(w)}
+      <div><button class="ghost" style="margin-top:6px" data-act="chat" data-id="${a.jobId}" data-w="${a.workerId}">💬</button></div>
+    </div>
+  </div>`;
+}
+function employerJobs(){
+  const jobs=empJobs(S.employerId);
+  if(!jobs.length) return `<div class="empty">${t("noMyJobs")}</div>`;
+  return jobs.map(job=>{
+    const apps=appsForJob(job.id), fill=acceptedFill(job.id);
+    const list = apps.length? apps.map(applicantRow).join("") : `<div class="sm muted" style="padding:8px 0">${t("noApplicants")}</div>`;
+    return `<div class="card">
+      <div class="jt"><div class="name" style="font-size:1.05rem">${urgBadge(job)} ${esc(job.title)}</div><div class="pay" style="font-size:1rem">${esc(job.pay)}</div></div>
+      <div class="meta"><span>📅 ${esc(job.date)}</span><span>🕒 ${esc(job.time)}</span><span>📍 ${esc(townName(job.town))}</span></div>
+      <div class="sm muted">👥 ${fill}/${job.needed} ${t("spotsFilled")} · ${apps.length} ${t("applicants")}</div>
+      <div style="margin-top:6px">${list}</div>
+    </div>`;
+  }).join("");
+}
+
+// ---- Employer: business profile ----
+function employerBiz(){
+  const e=E(S.employerId), jobs=empJobs(e.id);
+  const allApps=DB.apps.filter(a=>jobs.some(j=>j.id===a.jobId));
+  const done=allApps.filter(a=>a.status==="completed").length;
+  const noshow=allApps.filter(a=>a.status==="noshow").length;
+  const rate=(done+noshow)? Math.round(done/(done+noshow)*100):null;
+  const avg=e.ratingCount? (e.ratingSum/e.ratingCount).toFixed(1):"—";
+  return `<div class="card" style="text-align:center">
+    <div class="avatar" style="width:74px;height:74px;font-size:2.4rem;margin:4px auto 8px">🏢</div>
+    <div style="font-weight:800;font-size:1.2rem">${esc(e.biz)} ${e.verified?`<span class="verified">✔</span>`:""}</div>
+    ${e.verified?`<span class="pill green">✔ ${t("verified")}</span>`:""}
+    <div style="margin:14px 0"><div class="rel g" style="font-size:2rem">⭐ ${avg}</div><div class="muted sm">${t("avgRating")} · ${e.ratingCount} ${t("reviews")}</div></div>
+    <div class="stat"><span class="muted">📋 ${t("jobsPosted")}</span><b>${jobs.length}</b></div>
+    <div class="stat"><span class="muted">✅ ${t("completionRate")}</span><b>${rate==null?"—":rate+"%"}</b></div>
+  </div>
+  <div class="card"><div class="row">
+    <button class="ghost" data-act="loadDemo">${t("loadDemo")}</button>
+    <button class="ghost" data-act="clearAll">${t("clearAll")}</button>
+  </div></div>`;
+}
+
+// ---- Modals ----
+function modalApply(jobId){
+  const job=J(jobId);
+  const friends=DB.workers.filter(w=>w.id!==S.workerId && !DB.apps.some(a=>a.jobId===jobId&&(a.workerId===w.id||a.friendId===w.id)));
+  return `<div class="ov" data-act="closeOv"><div class="sheet" onclick="event.stopPropagation()">
+    <div class="grab"></div>
+    <h3>${esc(job.title)} · ${esc(job.pay)}</h3>
+    <div class="muted sm" style="margin-bottom:14px">${t("howApply")}</div>
+    <button class="btn" data-act="applyAlone" data-id="${jobId}">🙋 ${t("applyAlone")}</button>
+    <div class="muted sm" style="margin:16px 0 8px">👥 ${t("chooseFriend")}</div>
+    ${friends.length? friends.map(f=>`<button class="btn alt" style="margin-bottom:8px;text-align:left" data-act="applyFriend" data-id="${jobId}" data-f="${f.id}">
+        ${f.photo} ${esc(f.name)} · ${relChip(f).replace(/<span class="rel ([gmb]?)">/,'<span class="rel $1" style="float:right">')}</button>`).join("") : ""}
+  </div></div>`;
+}
+function modalChat(jobId, workerId){
+  const job=J(jobId), w=W(workerId);
+  const thread=DB.msgs.filter(m=>m.jobId===jobId&&m.workerId===workerId).sort((a,b)=>a.ts-b.ts);
+  const mineSide = S.role; // 'worker' or 'employer'
+  const bubbles = thread.length? thread.map(m=>{
+    const mine = m.from===mineSide;
+    const who = m.from==="employer"? esc(E(job.empId).biz) : esc(w.name);
+    return `<div class="bub ${mine?"me":"them"}"><div class="who">${who}</div>${esc(m.text)}</div>`;
+  }).join("") : `<div class="muted sm" style="text-align:center;margin:auto">—</div>`;
+  const title = S.role==="employer"? `${esc(w.name)}` : `${esc(E(job.empId).biz)}`;
+  return `<div class="ov" data-act="closeOv"><div class="sheet" onclick="event.stopPropagation()">
+    <div class="grab"></div>
+    <h3>💬 ${title}</h3><div class="muted sm">${esc(job.title)}</div>
+    <div class="msgs" id="msgs">${bubbles}</div>
+    <form class="chatform" data-act="sendForm" data-id="${jobId}" data-w="${workerId}">
+      <input id="msgInput" placeholder="${t("typeMsg")}" autocomplete="off" />
+      <button class="btn sm" type="submit">${t("send")}</button>
+    </form>
+  </div></div>`;
+}
+
+// ============ Render ============
+function render(){
+  document.getElementById("tagline").textContent=t("tagline");
+  document.getElementById("lang").value=lang;
+  // roles
+  document.getElementById("roles").innerHTML=
+    `<button data-act="role" data-v="worker" class="${S.role==="worker"?"on":""}">🔎 ${t("roleWorker")}</button>
+     <button data-act="role" data-v="employer" class="${S.role==="employer"?"on":""}">📢 ${t("roleEmployer")}</button>`;
+  // nav
+  const tabs = S.role==="worker"
+    ? [["jobs","🔥",t("w_jobs")],["apps","📨",t("w_apps")],["profile","👤",t("w_profile")]]
+    : [["post","➕",t("e_post")],["jobs","📋",t("e_jobs")],["biz","🏢",t("e_biz")]];
+  if(!tabs.some(x=>x[0]===S.tab)) S.tab=tabs[0][0];
+  document.getElementById("nav").innerHTML=tabs.map(([k,ic,lab])=>
+    `<button data-act="tab" data-v="${k}" class="${S.tab===k?"on":""}"><span class="ic">${ic}</span>${lab}</button>`).join("");
+  // body
+  let html="";
+  if(S.role==="worker"){
+    if(S.tab==="jobs") html=workerJobs();
+    else if(S.tab==="apps") html=workerApps();
+    else html=workerProfile();
   } else {
-    const worker = store.workers.find(w => w.id === targetId);
-    results = store.jobs.map(j => ({ who: j, name: `${j.title} · ${j.emp || ""}`, ...scoreMatch(j, worker) }));
+    if(S.tab==="post") html=employerPost();
+    else if(S.tab==="jobs") html=employerJobs();
+    else html=employerBiz();
   }
-  results.sort((a, b) => b.total - a.total);
-
-  if (!results.length) {
-    out.innerHTML = `<div class="empty">No ${mode === "job" ? "workers" : "jobs"} to match against yet.</div>`;
-    return;
+  const app=document.getElementById("app");
+  app.innerHTML=html;
+  // modal
+  let ov=document.getElementById("ovroot"); if(ov) ov.remove();
+  if(S.modal){
+    const root=document.createElement("div"); root.id="ovroot";
+    root.innerHTML = S.modal.type==="apply"? modalApply(S.modal.jobId) : modalChat(S.modal.jobId,S.modal.workerId);
+    document.body.appendChild(root);
+    const mi=document.getElementById("msgInput"); if(mi) mi.focus();
+    const mb=document.getElementById("msgs"); if(mb) mb.scrollTop=mb.scrollHeight;
   }
-  out.innerHTML = results.map(r => `
-    <div class="item">
-      <div class="top">
-        <div>
-          <div class="title">${esc(r.name)}</div>
-          <div class="sub">📍 ${r.who.area} · $${r.who.pay}/hr · ${r.who.skills.join(", ") || "—"}</div>
-        </div>
-        <span class="pill ${pillClass(r.total)}">${r.total}% match</span>
-      </div>
-      <div class="bars">
-        ${barRow("Skills", r.parts.skills)}
-        ${barRow("Availability", r.parts.availability)}
-        ${barRow("Location", r.parts.location)}
-        ${barRow("Pay", r.parts.pay)}
-      </div>
-      <div class="why">${explain(r.parts)}</div>
-    </div>`).join("");
-}
-function explain(p) {
-  const notes = [];
-  notes.push(p.skills === 100 ? "✅ all skills covered" : p.skills === 0 ? "❌ no skill overlap" : "⚠️ partial skill match");
-  notes.push(p.location === 100 ? "✅ area matches" : "❌ different area");
-  notes.push(p.availability >= 75 ? "✅ available" : p.availability === 0 ? "❌ not available" : "⚠️ limited availability");
-  notes.push(p.pay === 100 ? "✅ pay meets expectation" : "⚠️ pay below desired");
-  return notes.join(" &nbsp;·&nbsp; ");
+  // toast
+  let tt=document.getElementById("toastroot"); if(tt) tt.remove();
+  if(S.toast){ const r=document.createElement("div"); r.id="toastroot"; r.innerHTML=`<div class="toast">${esc(S.toast)}</div>`; document.body.appendChild(r); }
 }
 
-// ---------- Helpers ----------
-function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
-function renderAll() { renderJobs(); renderWorkers(); renderMatchTarget(); renderMatches(); }
-
-// ---------- Form handlers ----------
-document.getElementById("j_add").onclick = () => {
-  const title = document.getElementById("j_title").value.trim();
-  if (!title) return alert("Please enter a job title.");
-  store.jobs.push({
-    id: uid(), title,
-    emp: document.getElementById("j_emp").value.trim(),
-    skills: readChips("j_skills"),
-    area: document.getElementById("j_area").value,
-    pay: Number(document.getElementById("j_pay").value) || 0,
-    days: readChips("j_days"),
-    slots: readChips("j_slots"),
-  });
-  save();
-  document.getElementById("j_title").value = "";
-  document.getElementById("j_emp").value = "";
-  document.getElementById("j_pay").value = "";
-  ["j_skills","j_days","j_slots"].forEach(clearChips);
-  renderAll();
-};
-document.getElementById("w_add").onclick = () => {
-  const name = document.getElementById("w_name").value.trim();
-  if (!name) return alert("Please enter a name.");
-  store.workers.push({
-    id: uid(), name,
-    skills: readChips("w_skills"),
-    area: document.getElementById("w_area").value,
-    pay: Number(document.getElementById("w_pay").value) || 0,
-    days: readChips("w_days"),
-    slots: readChips("w_slots"),
-  });
-  save();
-  document.getElementById("w_name").value = "";
-  document.getElementById("w_pay").value = "";
-  ["w_skills","w_days","w_slots"].forEach(clearChips);
-  renderAll();
-};
-
-// ---------- Tabs ----------
-document.querySelectorAll("nav.tabs button").forEach(btn => {
-  btn.onclick = () => {
-    document.querySelectorAll("nav.tabs button").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
-  };
+// ============ Events ============
+document.addEventListener("click", e=>{
+  const el=e.target.closest("[data-act]"); if(!el) return;
+  const act=el.dataset.act, id=el.dataset.id;
+  switch(act){
+    case "role": S.role=el.dataset.v; S.tab=null; render(); break;
+    case "tab": S.tab=el.dataset.v; render(); break;
+    case "dist": S.dist=el.dataset.v; render(); break;
+    case "urg": S.urgent=!S.urgent; render(); break;
+    case "openApply": S.modal={type:"apply",jobId:id}; render(); break;
+    case "closeOv": S.modal=null; render(); break;
+    case "applyAlone":
+      DB.apps.push({id:uid(),jobId:id,workerId:S.workerId,friendId:null,status:"applied"});
+      save(); S.modal=null; S.tab="apps"; toast(t("appliedToast")); break;
+    case "applyFriend":
+      DB.apps.push({id:uid(),jobId:id,workerId:S.workerId,friendId:el.dataset.f,status:"applied"});
+      save(); S.modal=null; S.tab="apps"; toast(t("appliedToast")); break;
+    case "chat": S.modal={type:"chat",jobId:id,workerId:el.dataset.w}; render(); break;
+    case "accept": setStatus(id,"accepted"); break;
+    case "decline": setStatus(id,"declined"); break;
+    case "complete": resolveJob(id,true); break;
+    case "noshow": resolveJob(id,false); break;
+    case "rate": { const n=e.target.dataset.n; if(n) doRate(id,Number(n)); break; }
+    case "publish": publish(); break;
+    case "loadDemo": if(confirm("Load demo data?")){ seed(); S.modal=null; render(); } break;
+    case "clearAll": if(confirm("Clear everything?")){ DB.workers=[me()?me():{id:"me",name:"You",age:24,photo:"🧑",langs:["English"],town:"georgetown",completed:0,noshow:0}]; DB.workers=[{id:"me",name:"You",age:24,photo:"🧑",langs:["English"],town:"georgetown",completed:0,noshow:0}]; DB.employers=[{id:"e1",biz:"My Business",verified:false,ratingSum:0,ratingCount:0}]; DB.jobs=[];DB.apps=[];DB.msgs=[]; S.workerId="me"; save(); render(); } break;
+  }
 });
-document.getElementById("matchMode").onchange = () => { renderMatchTarget(); renderMatches(); };
-document.getElementById("matchTarget").onchange = renderMatches;
+document.addEventListener("change", e=>{
+  if(e.target.id==="lang"){ lang=e.target.value; localStorage.setItem("wg_lang",lang); render(); }
+  if(e.target.dataset.act==="actAs"){ S.workerId=e.target.value; render(); }
+});
+document.addEventListener("submit", e=>{
+  const f=e.target.closest("[data-act='sendForm']"); if(!f) return;
+  e.preventDefault();
+  const input=document.getElementById("msgInput"); const text=input.value.trim(); if(!text) return;
+  DB.msgs.push({id:uid(),jobId:f.dataset.id,workerId:f.dataset.w,from:S.role,text,ts:Date.now()});
+  save(); render();
+});
+function setStatus(appId,status){ const a=DB.apps.find(x=>x.id===appId); if(a){a.status=status; save(); render();} }
+function resolveJob(appId, showed){
+  const a=DB.apps.find(x=>x.id===appId); if(!a) return;
+  a.status = showed? "completed":"noshow";
+  [a.workerId, a.friendId].filter(Boolean).forEach(wid=>{ const w=W(wid); if(w){ if(showed) w.completed++; else w.noshow++; } });
+  save(); render();
+}
+function doRate(appId, n){
+  const a=DB.apps.find(x=>x.id===appId); if(!a||a.rated) return;
+  a.rated=n; const job=J(a.jobId); const e=E(job.empId); if(e){ e.ratingSum+=n; e.ratingCount++; }
+  save(); render();
+}
+function publish(){
+  const v=id=>document.getElementById(id).value.trim();
+  const title=v("p_title"); if(!title){ alert("Job title?"); return; }
+  DB.jobs.unshift({ id:uid(), empId:S.employerId, title,
+    town:document.getElementById("p_town").value, date:v("p_date")||"-", time:v("p_time")||"-",
+    pay:v("p_pay")||"-", needed:Math.max(1,Number(v("p_needed"))||1), urg:document.getElementById("p_urg").value });
+  save(); S.tab="jobs"; toast(t("postedToast"));
+}
 
-// ---------- Demo data + clear ----------
-document.getElementById("seedBtn").onclick = () => {
-  store.jobs = [
-    { id: uid(), title: "Weekend Barista", emp: "Bluebird Café", skills: ["Café / Barista"], area: "Downtown", pay: 18, days: ["Sat","Sun"], slots: ["Morning","Afternoon"] },
-    { id: uid(), title: "Evening Cashier", emp: "QuickMart", skills: ["Cashier / Retail"], area: "North", pay: 15, days: ["Mon","Wed","Fri"], slots: ["Evening"] },
-    { id: uid(), title: "Event Crew", emp: "StageWorks", skills: ["Event Staff","Cleaning"], area: "Central", pay: 20, days: ["Fri","Sat"], slots: ["Evening","Night"] },
-    { id: uid(), title: "Math Tutor", emp: "BrightMinds", skills: ["Tutoring"], area: "East", pay: 25, days: ["Tue","Thu"], slots: ["Afternoon"] },
-  ];
-  store.workers = [
-    { id: uid(), name: "Alex Tan", skills: ["Café / Barista","Waiter / Server"], area: "Downtown", pay: 16, days: ["Sat","Sun","Fri"], slots: ["Morning","Afternoon"] },
-    { id: uid(), name: "Priya R.", skills: ["Tutoring","Admin / Office"], area: "East", pay: 22, days: ["Tue","Thu"], slots: ["Afternoon","Evening"] },
-    { id: uid(), name: "Marcus Lee", skills: ["Event Staff","Cleaning","Warehouse"], area: "Anywhere", pay: 18, days: ["Fri","Sat","Sun"], slots: ["Evening","Night"] },
-    { id: uid(), name: "Sara K.", skills: ["Cashier / Retail"], area: "South", pay: 14, days: ["Mon","Wed","Fri"], slots: ["Evening"] },
-  ];
-  save(); renderAll();
-};
-document.getElementById("clearBtn").onclick = () => {
-  if (!confirm("Remove all jobs and workers?")) return;
-  store.jobs = []; store.workers = []; save(); renderAll();
-};
-
-// ---------- Init ----------
-["j_skills","w_skills"].forEach(id => buildChips(id, SKILLS));
-["j_days","w_days"].forEach(id => buildChips(id, DAYS));
-["j_slots","w_slots"].forEach(id => buildChips(id, SLOTS));
-fillSelect("j_area", AREAS, false);
-fillSelect("w_area", AREAS, true);
-renderAll();
+render();
 </script>
 </body>
 </html>
