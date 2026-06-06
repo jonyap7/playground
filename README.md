@@ -39,8 +39,11 @@ app/
   globals.css    # all styles
   icon.svg       # favicon
 public/
-  gig.js         # the WhatsBiz GIG app logic (vanilla JS, runs client-side)
-  standalone.html# the original zero-build single-file version (open in any browser)
+  gig.js               # the WhatsBiz GIG app logic (vanilla JS, runs client-side)
+  manifest.webmanifest # PWA manifest
+  sw.js                # service worker (network-first, cache fallback)
+  icon-192/512/maskable.png  # PWA icons
+  standalone.html      # the original zero-build single-file version (open in any browser)
 ```
 
 The app is intentionally framework-light: `page.js` renders the static shell and
@@ -65,8 +68,25 @@ to iterate on; it can be ported to React components incrementally as it grows.
 - **Reliability over resumes** — `Reliability % = completed / (completed + no-shows)`.
 - **Work Buddy mode** — apply with a friend; a buddy application fills 2 spots.
 - **Urgent jobs** — `⚡ Need staff today / tomorrow` are pinned to the top.
-- **Nearby** — distance filtering (within 2 / 5 / 10 km).
+- **Nearby** — distance filtering (within 2 / 5 / 10 km), with optional **live GPS**
+  ("Use my location" → haversine distance, falling back to the town grid).
+- **Notifications** — in-app bell + feed: applies, accept/decline, new messages,
+  and new urgent jobs.
+- **Share to WhatsApp** — every job has a one-tap share that opens WhatsApp with
+  the job details and a deep link (`/?job=<id>`) that drops the recipient
+  straight into the apply screen. This is how gig staffing actually spreads.
+- **Installable PWA** — manifest + icons + service worker, so it can be added to
+  the home screen and works offline. An in-app **Install** button appears when
+  the browser offers it.
 - **Multilingual** — full UI in English, Bahasa, 中文 and বাংলা.
+
+## Monetization (built into the prototype)
+
+Employers have a **plan** (set on the Business screen):
+
+- **Free (RM0)** — capped at 5 job posts (with an upgrade prompt).
+- **Pro (RM29/mo)** — unlimited posts + priority listing.
+- **Premium (RM99/mo)** — Featured jobs (gold, pinned to the top) + company badge.
 
 ## Revenue model (product direction)
 

@@ -103,3 +103,8 @@
   .tier.on{opacity:1;}
   .check{display:flex;align-items:center;gap:9px;margin-top:12px;color:var(--text);font-size:.92rem;cursor:pointer;font-weight:600;}
   .check input{width:auto;}
+
+  /* --- WhatsApp share button --- */
+  .btn.wa{background:#25d366;color:#053b22;font-weight:800;}
+  .btn.wa:not(.full){width:auto;padding:13px 14px;flex:none;}
+  .btn.wa.full{width:100%;}

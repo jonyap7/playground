@@ -110,6 +110,11 @@
   .tier.on{opacity:1;}
   .check{display:flex;align-items:center;gap:9px;margin-top:12px;color:var(--text);font-size:.92rem;cursor:pointer;font-weight:600;}
   .check input{width:auto;}
+
+  /* --- WhatsApp share button --- */
+  .btn.wa{background:#25d366;color:#053b22;font-weight:800;}
+  .btn.wa:not(.full){width:auto;padding:13px 14px;flex:none;}
+  .btn.wa.full{width:100%;}
 </style>
 </head>
 <body>
@@ -257,6 +262,14 @@ const EXTRA = {
     planFreeDesc:"মাসে ৫টি পোস্ট",planProDesc:"আনলিমিটেড পোস্ট · অগ্রাধিকার",planPremiumDesc:"ফিচার্ড কাজ · আবেদনকারী বুস্ট · কোম্পানি ব্যাজ" },
 };
 for(const l in T) Object.assign(T[l], EXTRA[l]||{});
+// share + install strings
+const EXTRA2 = {
+  en:{ shareWA:"Share to WhatsApp", share:"Share", install:"📲 Install app", installed:"App installed!", shareText:"is hiring on WhatsBiz GIG" },
+  ms:{ shareWA:"Kongsi ke WhatsApp", share:"Kongsi", install:"📲 Pasang apl", installed:"Apl dipasang!", shareText:"sedang mengupah di WhatsBiz GIG" },
+  zh:{ shareWA:"分享到 WhatsApp", share:"分享", install:"📲 安装应用", installed:"应用已安装！", shareText:"正在 WhatsBiz GIG 招聘" },
+  bn:{ shareWA:"WhatsApp এ শেয়ার", share:"শেয়ার", install:"📲 অ্যাপ ইনস্টল", installed:"অ্যাপ ইনস্টল হয়েছে!", shareText:"WhatsBiz GIG-এ নিয়োগ দিচ্ছে" },
+};
+for(const l in T) Object.assign(T[l], EXTRA2[l]||{});
 let lang = localStorage.getItem("wg_lang") || "en";
 const t = k => (T[lang][k] ?? T.en[k] ?? k);
 const PLAN_PRICE = { free:"RM0", pro:"RM29", premium:"RM99" };
@@ -349,6 +362,21 @@ function timeAgo(ts){ const m=Math.round((Date.now()-ts)/60000); if(m<1)return"n
 const empPlan = e => e.plan || "free";
 const isPremium = e => empPlan(e)==="premium";
 const planRank = e => empPlan(e)==="free" ? 1 : 0;   // 0 = priority listing
+// share — forward a job to WhatsApp (or the native share sheet) with a deep link back in
+function shareJob(jobId){
+  const job=J(jobId); if(!job) return;
+  const url = (typeof location!=="undefined" ? location.origin+location.pathname : "") + "?job=" + jobId;
+  const urg = job.urg==="today" ? "🔥 " : job.urg==="tomorrow" ? "⚡ " : "";
+  const text = `${urg}${E(job.empId).biz} ${t("shareText")}\n\n`+
+    `*${job.title}* · ${job.pay}\n📅 ${job.date} ${job.time}\n📍 ${townName(job.town)}\n👥 ${t("needPax")} ${job.needed} ${t("pax")}\n\n${t("apply")} 👉 ${url}`;
+  if(typeof navigator!=="undefined" && navigator.share){
+    navigator.share({ title:"WhatsBiz GIG", text, url }).catch(()=>{});
+  } else if(typeof window!=="undefined"){
+    window.open("https://wa.me/?text="+encodeURIComponent(text), "_blank");
+  }
+}
+let deferredInstall=null;  // captured beforeinstallprompt event
+const installBtn = () => deferredInstall ? `<button class="btn" style="margin-bottom:12px" data-act="install">${t("install")}</button>` : "";
 
 // ============ Components ============
 function urgBadge(job){
@@ -381,7 +409,10 @@ function jobCard(job){
       <span>📍 ${esc(townName(job.town))} · ${distLabel(job)}</span>
     </div>
     <div class="spots muted">👥 ${t("needPax")} ${job.needed} ${t("pax")} · <b style="color:var(--brand2)">${left}</b> ${t("spotsLeft")}</div>
-    <div style="margin-top:12px">${action}</div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <div style="flex:1">${action}</div>
+      <button class="btn wa" data-act="share" data-id="${job.id}" title="${t("shareWA")}" aria-label="${t("shareWA")}">🟢</button>
+    </div>
   </div>`;
 }
 function workerJobs(){
@@ -435,7 +466,7 @@ function workerApps(){
 function workerProfile(){
   const w=me(), s=reliability(w);
   const others=DB.workers.map(x=>`<option value="${x.id}" ${x.id===S.workerId?"selected":""}>${esc(x.name)}</option>`).join("");
-  return `<div class="card" style="text-align:center">
+  return `${installBtn()}<div class="card" style="text-align:center">
     <div class="avatar" style="width:74px;height:74px;font-size:2.6rem;margin:4px auto 8px">${w.photo}</div>
     <div style="font-weight:800;font-size:1.2rem">${esc(w.name)}, ${w.age}</div>
     <div class="muted sm">🗣️ ${w.langs.join(", ")}</div>
@@ -527,6 +558,7 @@ function employerJobs(){
       <div class="jt"><div class="name" style="font-size:1.05rem">${urgBadge(job)} ${esc(job.title)}</div><div class="pay" style="font-size:1rem">${esc(job.pay)}</div></div>
       <div class="meta"><span>📅 ${esc(job.date)}</span><span>🕒 ${esc(job.time)}</span><span>📍 ${esc(townName(job.town))}</span></div>
       <div class="sm muted">👥 ${fill}/${job.needed} ${t("spotsFilled")} · ${apps.length} ${t("applicants")}</div>
+      <button class="btn wa full" style="margin-top:10px" data-act="share" data-id="${job.id}">🟢 ${t("shareWA")}</button>
       <div style="margin-top:6px">${list}</div>
     </div>`;
   }).join("");
@@ -542,7 +574,7 @@ function employerBiz(){
   const avg=e.ratingCount? (e.ratingSum/e.ratingCount).toFixed(1):"—";
   const plan=empPlan(e);
   const planLabel={free:t("planFree"),pro:t("planPro"),premium:t("planPremium")};
-  return `<div class="card" style="text-align:center">
+  return `${installBtn()}<div class="card" style="text-align:center">
     <div class="avatar" style="width:74px;height:74px;font-size:2.4rem;margin:4px auto 8px">🏢</div>
     <div style="font-weight:800;font-size:1.2rem">${esc(e.biz)} ${e.verified?`<span class="verified">✔</span>`:""}</div>
     <div style="margin-top:4px"><span class="pill ${plan==="free"?"gray":"gold"}">${plan==="free"?"":"⭐ "}${planLabel[plan]}</span></div>
@@ -705,6 +737,10 @@ document.addEventListener("click", e=>{
       notify("employer", job.empId, `${me().name} ${t("notiApplied")} ${job.title} ${t("notiBuddy")}`);
       save(); S.modal=null; S.tab="apps"; toast(t("appliedToast")); break; }
     case "chat": S.modal={type:"chat",jobId:id,workerId:el.dataset.w}; render(); break;
+    case "share": shareJob(id); break;
+    case "install":
+      if(deferredInstall){ deferredInstall.prompt(); deferredInstall.userChoice.finally(()=>{ deferredInstall=null; render(); }); }
+      break;
     case "accept": { const a=DB.apps.find(x=>x.id===id); if(a){ const job=J(a.jobId);
         [a.workerId,a.friendId].filter(Boolean).forEach(wid=>notify("worker",wid,`${t("notiAccepted")} ${job.title}`)); }
         setStatus(id,"accepted"); break; }
@@ -760,6 +796,20 @@ function publish(){
   // urgent jobs ping all workers
   if(urg!=="normal") DB.workers.forEach(w=>notify("worker", w.id, `${t("notiUrgent")} ${title}`));
   save(); S.tab="jobs"; toast(t("postedToast"));
+}
+
+// ============ PWA + deep links ============
+if(typeof window!=="undefined"){
+  // installable app: capture the prompt and surface our own Install button
+  window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferredInstall=e; render(); });
+  window.addEventListener("appinstalled", ()=>{ deferredInstall=null; toast(t("installed")); });
+  // register the service worker (ignored on file:// or unsupported browsers)
+  if("serviceWorker" in navigator){ window.addEventListener("load", ()=>navigator.serviceWorker.register("/sw.js").catch(()=>{})); }
+  // deep link: ?job=<id> opens that job for a worker (used by shared WhatsApp links)
+  try{
+    const jid=new URLSearchParams(location.search).get("job");
+    if(jid && J(jid)){ S.role="worker"; S.tab="jobs"; S.modal={type:"apply",jobId:jid}; }
+  }catch(_){}
 }
 
 render();
