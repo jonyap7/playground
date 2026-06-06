@@ -205,8 +205,41 @@ const T = {
     needPax:"দরকার",pax:"জন",appliedToast:"আবেদন হয়েছে! নিয়োগকর্তা এখন দেখতে পাবেন।",postedToast:"পোস্ট হয়েছে! কর্মীরা দেখতে পাবেন।",
     spotsFilled:"পূর্ণ",chatWith:"চ্যাট",reviews:"রিভিউ"},
 };
+// extra strings (notifications, plans, GPS, featured) merged into each language
+const EXTRA = {
+  en:{ notifs:"Notifications",noNotifs:"No notifications yet.",
+    notiApplied:"applied to",notiBuddy:"(with a friend)",notiAccepted:"🎉 You're accepted for",notiDeclined:"Not selected for",notiMsg:"💬 New message —",notiUrgent:"⚡ New urgent job nearby:",
+    useGPS:"📍 Use my location",gpsOn:"Using your live location 📍",gpsFail:"Location off — using your town",
+    plan:"Plan",planFree:"Free",planPro:"Pro",planPremium:"Premium",current:"Current plan",choosePlan:"Choose a plan",
+    featured:"Featured",featureThis:"✨ Feature this job (Premium)",unlimited:"Unlimited",perMonth:"/month",
+    freeLimit:"Free plan allows 5 jobs. Upgrade for unlimited.",postsUsed:"jobs used",upgraded:"Plan updated!",featureLocked:"Featuring is a Premium feature.",
+    planFreeDesc:"5 job posts / month",planProDesc:"Unlimited posts · priority listing",planPremiumDesc:"Featured jobs · applicant boost · company badge" },
+  ms:{ notifs:"Notifikasi",noNotifs:"Tiada notifikasi lagi.",
+    notiApplied:"memohon",notiBuddy:"(dengan kawan)",notiAccepted:"🎉 Anda diterima untuk",notiDeclined:"Tidak dipilih untuk",notiMsg:"💬 Mesej baru —",notiUrgent:"⚡ Kerja segera berdekatan:",
+    useGPS:"📍 Guna lokasi saya",gpsOn:"Menggunakan lokasi langsung 📍",gpsFail:"Lokasi tutup — guna bandar anda",
+    plan:"Pelan",planFree:"Percuma",planPro:"Pro",planPremium:"Premium",current:"Pelan semasa",choosePlan:"Pilih pelan",
+    featured:"Pilihan",featureThis:"✨ Ketengahkan kerja (Premium)",unlimited:"Tanpa had",perMonth:"/bulan",
+    freeLimit:"Pelan percuma 5 kerja sahaja. Naik taraf untuk tanpa had.",postsUsed:"kerja digunakan",upgraded:"Pelan dikemas kini!",featureLocked:"Ketengah adalah ciri Premium.",
+    planFreeDesc:"5 iklan / bulan",planProDesc:"Iklan tanpa had · keutamaan",planPremiumDesc:"Kerja pilihan · galak pemohon · lencana syarikat" },
+  zh:{ notifs:"通知",noNotifs:"还没有通知。",
+    notiApplied:"申请了",notiBuddy:"（和朋友）",notiAccepted:"🎉 你被录取：",notiDeclined:"未被选中：",notiMsg:"💬 新消息 —",notiUrgent:"⚡ 附近急聘：",
+    useGPS:"📍 使用我的位置",gpsOn:"正在使用实时位置 📍",gpsFail:"定位关闭 — 使用你的城镇",
+    plan:"套餐",planFree:"免费",planPro:"专业",planPremium:"高级",current:"当前套餐",choosePlan:"选择套餐",
+    featured:"精选",featureThis:"✨ 精选此工作（高级）",unlimited:"无限",perMonth:"/月",
+    freeLimit:"免费版限5个工作。升级享无限。",postsUsed:"已用",upgraded:"套餐已更新！",featureLocked:"精选为高级功能。",
+    planFreeDesc:"每月5个发布",planProDesc:"无限发布 · 优先展示",planPremiumDesc:"精选工作 · 申请者加成 · 公司徽章" },
+  bn:{ notifs:"নোটিফিকেশন",noNotifs:"এখনো কোনো নোটিফিকেশন নেই।",
+    notiApplied:"আবেদন করেছে",notiBuddy:"(বন্ধুসহ)",notiAccepted:"🎉 আপনি গৃহীত:",notiDeclined:"নির্বাচিত হননি:",notiMsg:"💬 নতুন বার্তা —",notiUrgent:"⚡ কাছেই জরুরি কাজ:",
+    useGPS:"📍 আমার লোকেশন",gpsOn:"লাইভ লোকেশন ব্যবহার হচ্ছে 📍",gpsFail:"লোকেশন বন্ধ — শহর ব্যবহার হচ্ছে",
+    plan:"প্ল্যান",planFree:"ফ্রি",planPro:"প্রো",planPremium:"প্রিমিয়াম",current:"বর্তমান প্ল্যান",choosePlan:"প্ল্যান বাছুন",
+    featured:"ফিচার্ড",featureThis:"✨ এই কাজ ফিচার করুন (প্রিমিয়াম)",unlimited:"আনলিমিটেড",perMonth:"/মাস",
+    freeLimit:"ফ্রি প্ল্যানে ৫টি কাজ। আনলিমিটেডের জন্য আপগ্রেড করুন।",postsUsed:"কাজ ব্যবহৃত",upgraded:"প্ল্যান আপডেট হয়েছে!",featureLocked:"ফিচার করা প্রিমিয়াম সুবিধা।",
+    planFreeDesc:"মাসে ৫টি পোস্ট",planProDesc:"আনলিমিটেড পোস্ট · অগ্রাধিকার",planPremiumDesc:"ফিচার্ড কাজ · আবেদনকারী বুস্ট · কোম্পানি ব্যাজ" },
+};
+for(const l in T) Object.assign(T[l], EXTRA[l]||{});
 let lang = localStorage.getItem("wg_lang") || "en";
 const t = k => (T[lang][k] ?? T.en[k] ?? k);
+const PLAN_PRICE = { free:"RM0", pro:"RM29", premium:"RM99" };
 
 // ============ Towns (Penang) for distance ============
 const TOWNS = {

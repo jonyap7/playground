@@ -7,44 +7,68 @@ is speed:
 
 > Employer posts a job in 30 seconds. Worker finds a job in 30 seconds.
 
-It's a single self-contained `index.html` — no build, no server, no
-dependencies. Open it in a phone browser (it's mobile-first) and tap **Load
-demo** to try the full loop.
+This is a **Next.js** app (so it deploys to Vercel out of the box). The whole
+WhatsBiz GIG experience is a self-contained mobile-first UI.
+
+## Run locally
+
+```bash
+npm install
+npm run dev      # http://localhost:3000
+```
+
+Build / production:
+
+```bash
+npm run build
+npm run start
+```
+
+## Deploy (Vercel)
+
+Push this repo and import it in Vercel. Because `package.json` lists `next`,
+Vercel auto-detects the framework — no config needed. Make sure the project's
+**Root Directory** points at the repo root (where `package.json` lives).
+
+## Project structure
+
+```
+app/
+  layout.js      # root layout, metadata, global CSS
+  page.js        # renders the app shell + loads the logic
+  globals.css    # all styles
+  icon.svg       # favicon
+public/
+  gig.js         # the WhatsBiz GIG app logic (vanilla JS, runs client-side)
+  standalone.html# the original zero-build single-file version (open in any browser)
+```
+
+The app is intentionally framework-light: `page.js` renders the static shell and
+loads `public/gig.js`, which drives the whole UI. This keeps the prototype fast
+to iterate on; it can be ported to React components incrementally as it grows.
 
 ## The core loop (Phase-1 MVP)
 
 1. **Post Job** — employer fills 6 fields (title, location, date, time, pay,
    number needed) + urgency, then publishes.
-2. **Browse Jobs** — workers see swipeable cards, sorted **urgent first, then
-   nearest**, with distance ("5 km away"), pay, and spots left.
-3. **Apply** — one tap. No CV, no resume. **Apply alone** or **with a friend**
-   (Work Buddy mode).
-4. **Applicants by reliability** — the employer sees each applicant's ⭐
-   Reliability Score, completed jobs and no-shows, and Accepts/Declines.
+2. **Browse Jobs** — workers see cards, sorted **urgent first, then nearest**,
+   with distance, pay, and spots left.
+3. **Apply** — one tap. No CV. **Apply alone** or **with a friend** (Work Buddy).
+4. **Applicants by reliability** — employer sees each applicant's ⭐ Reliability
+   Score, completed jobs and no-shows, and Accepts/Declines.
 5. **Chat** — a simple thread per applicant.
 6. **Ratings & Reliability** — employer marks "✓ Showed up" or "No-show", which
    updates the worker's Reliability Score. Workers rate employers back (★).
 
 ## Key ideas
 
-- **Reliability over resumes** — employers care that staff show up. Every worker
-  has a `Reliability % = completed / (completed + no-shows)`.
-- **Work Buddy mode** — apply with a friend to reduce fear and lift application
-  rates; a buddy application fills 2 spots.
+- **Reliability over resumes** — `Reliability % = completed / (completed + no-shows)`.
+- **Work Buddy mode** — apply with a friend; a buddy application fills 2 spots.
 - **Urgent jobs** — `⚡ Need staff today / tomorrow` are pinned to the top.
-- **Nearby** — distance-based filtering (within 2 / 5 / 10 km), computed from the
-  worker's town. (Penang towns are used as a demo distance grid; real GPS can
-  drop in later.)
-- **Multilingual** — full UI in English, Bahasa, 中文 and বাংলা, because a big
-  share of gig workers are foreign workers.
+- **Nearby** — distance filtering (within 2 / 5 / 10 km).
+- **Multilingual** — full UI in English, Bahasa, 中文 and বাংলা.
 
-## Target gigs
-
-Event crew, promoters, waiters, retail helpers, warehouse workers, roadshow
-staff, emcees, photographers, dancers, freelancers — the "I need 10 promoters
-tomorrow" problem, not full-time hiring.
-
-## Revenue model (not built yet — product direction)
+## Revenue model (product direction)
 
 - **Free** — 5 job posts/month
 - **RM29/month** — unlimited posts + priority listing
@@ -52,9 +76,8 @@ tomorrow" problem, not full-time hiring.
 
 ## Notes
 
-- All data is stored locally in your browser (`localStorage`); the demo runs
-  both sides (worker + employer) in one browser so you can see the whole loop.
-  Use the **Demo: act as** picker on the Profile screen to apply as different
-  workers.
-- This is a clickable prototype. A production build would add real accounts,
-  GPS, payments, and push notifications.
+- Data is stored locally in the browser (`localStorage`); the demo runs both
+  sides (worker + employer) in one browser. Use **Demo: act as** on the Profile
+  screen to apply as different workers.
+- This is a clickable prototype. Production would add real accounts, GPS,
+  payments, and push notifications.
