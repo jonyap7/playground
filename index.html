@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ShiftMatch — Part-Timer Matching</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-2: #273449;
+    --line: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --brand: #6366f1;
+    --brand-2: #8b5cf6;
+    --good: #22c55e;
+    --mid: #eab308;
+    --bad: #ef4444;
+    --chip: #334155;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  header {
+    background: linear-gradient(120deg, var(--brand), var(--brand-2));
+    padding: 22px 20px;
+  }
+  header .inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  header h1 { margin: 0; font-size: 1.5rem; letter-spacing: -0.5px; }
+  header p { margin: 2px 0 0; color: rgba(255,255,255,.85); font-size: .9rem; }
+  .logo {
+    width: 42px; height: 42px; border-radius: 12px; background: rgba(255,255,255,.18);
+    display: grid; place-items: center; font-size: 22px; flex: none;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+  nav.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  nav.tabs button {
+    background: var(--panel); color: var(--muted); border: 1px solid var(--line);
+    padding: 10px 16px; border-radius: 999px; cursor: pointer; font-size: .92rem; font-weight: 600;
+    transition: .15s;
+  }
+  nav.tabs button:hover { color: var(--text); }
+  nav.tabs button.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .tab { display: none; }
+  .tab.active { display: block; }
+  .grid { display: grid; gap: 18px; }
+  @media (min-width: 760px) { .grid.two { grid-template-columns: 360px 1fr; } }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 18px;
+  }
+  .card h2 { margin: 0 0 14px; font-size: 1.1rem; }
+  .card h3 { margin: 0 0 10px; font-size: 1rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
+
+  label { display: block; font-size: .82rem; color: var(--muted); margin: 12px 0 5px; font-weight: 600; }
+  input, select {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    padding: 10px 12px; border-radius: 10px; font-size: .95rem; font-family: inherit;
+  }
+  input:focus, select:focus { outline: 2px solid var(--brand); border-color: var(--brand); }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 6px; }
+  .chips .opt {
+    background: var(--chip); border: 1px solid var(--line); color: var(--muted);
+    padding: 6px 11px; border-radius: 999px; cursor: pointer; font-size: .82rem; user-select: none;
+    transition: .12s;
+  }
+  .chips .opt.sel { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  button.primary {
+    margin-top: 16px; width: 100%; background: var(--brand); color: #fff; border: none;
+    padding: 12px; border-radius: 10px; font-weight: 700; font-size: .95rem; cursor: pointer;
+  }
+  button.primary:hover { background: #4f46e5; }
+  button.ghost {
+    background: transparent; border: 1px solid var(--line); color: var(--muted);
+    padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: .82rem; font-weight: 600;
+  }
+  button.ghost:hover { color: var(--text); border-color: var(--muted); }
+
+  .toolbar { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; }
+  .toolbar .actions { display: flex; gap: 8px; }
+
+  .list { display: grid; gap: 12px; }
+  .item {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px;
+  }
+  .item .top { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
+  .item .title { font-weight: 700; font-size: 1.02rem; }
+  .item .sub { color: var(--muted); font-size: .85rem; margin-top: 2px; }
+  .item .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .tag {
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
+    padding: 3px 9px; border-radius: 999px; font-size: .75rem;
+  }
+  .tag.pay { color: var(--good); border-color: rgba(34,197,94,.4); }
+  .pill {
+    font-weight: 800; font-size: .85rem; padding: 5px 11px; border-radius: 999px; white-space: nowrap;
+  }
+  .pill.good { background: rgba(34,197,94,.15); color: var(--good); }
+  .pill.mid  { background: rgba(234,179,8,.15); color: var(--mid); }
+  .pill.bad  { background: rgba(239,68,68,.15); color: var(--bad); }
+
+  .empty { color: var(--muted); text-align: center; padding: 30px; border: 1px dashed var(--line); border-radius: 12px; }
+
+  .match-head { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .match-head select { max-width: 360px; }
+
+  .bars { margin-top: 12px; display: grid; gap: 7px; }
+  .bar-row { display: grid; grid-template-columns: 90px 1fr 40px; align-items: center; gap: 8px; font-size: .78rem; color: var(--muted); }
+  .track { background: var(--panel-2); border-radius: 999px; height: 8px; overflow: hidden; }
+  .fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--brand), var(--brand-2)); }
+  .why { font-size: .8rem; color: var(--muted); margin-top: 10px; }
+  .why b { color: var(--text); }
+  footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 24px; }
+  .count { background: var(--panel-2); border-radius: 999px; padding: 1px 9px; font-size: .78rem; color: var(--muted); margin-left: 6px; }
+  .del { color: var(--bad); background: transparent; border: none; cursor: pointer; font-size: .8rem; }
+</style>
+</head>
+<body>
+<header>
+  <div class="inner">
+    <div class="logo">⚡</div>
+    <div>
+      <h1>ShiftMatch</h1>
+      <p>Match part-timers to shifts by skills, location, availability &amp; pay.</p>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="tabs">
+    <button data-tab="match" class="active">🔎 Browse &amp; Match</button>
+    <button data-tab="jobs">📋 Post a Job <span class="count" id="jobCount">0</span></button>
+    <button data-tab="workers">🙋 Add a Worker <span class="count" id="workerCount">0</span></button>
+  </nav>
+
+  <!-- MATCH TAB -->
+  <section class="tab active" id="tab-match">
+    <div class="card">
+      <div class="match-head">
+        <strong>Find best</strong>
+        <select id="matchMode">
+          <option value="job">workers for a job</option>
+          <option value="worker">jobs for a worker</option>
+        </select>
+        <select id="matchTarget"></select>
+      </div>
+      <div id="matchResults" class="list"></div>
+    </div>
+  </section>
+
+  <!-- JOBS TAB -->
+  <section class="tab" id="tab-jobs">
+    <div class="grid two">
+      <div class="card">
+        <h2>Post a job</h2>
+        <label>Job title</label>
+        <input id="j_title" placeholder="e.g. Weekend Barista" />
+        <label>Employer / venue</label>
+        <input id="j_emp" placeholder="e.g. Bluebird Café" />
+        <label>Required skills / role</label>
+        <div class="chips" id="j_skills"></div>
+        <label>Area</label>
+        <select id="j_area"></select>
+        <div class="row">
+          <div>
+            <label>Pay offered ($/hr)</label>
+            <input id="j_pay" type="number" min="0" step="0.5" placeholder="18" />
+          </div>
+        </div>
+        <label>Days needed</label>
+        <div class="chips" id="j_days"></div>
+        <label>Time slots</label>
+        <div class="chips" id="j_slots"></div>
+        <button class="primary" id="j_add">Post job</button>
+      </div>
+      <div>
+        <div class="toolbar">
+          <h3 style="margin:0">Open jobs</h3>
+          <div class="actions">
+            <button class="ghost" id="seedBtn">Load demo data</button>
+            <button class="ghost" id="clearBtn">Clear all</button>
+          </div>
+        </div>
+        <div id="jobList" class="list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WORKERS TAB -->
+  <section class="tab" id="tab-workers">
+    <div class="grid two">
+      <div class="card">
+        <h2>Add a worker</h2>
+        <label>Name</label>
+        <input id="w_name" placeholder="e.g. Alex Tan" />
+        <label>Skills / roles</label>
+        <div class="chips" id="w_skills"></div>
+        <label>Preferred area</label>
+        <select id="w_area"></select>
+        <div class="row">
+          <div>
+            <label>Desired pay ($/hr)</label>
+            <input id="w_pay" type="number" min="0" step="0.5" placeholder="16" />
+          </div>
+        </div>
+        <label>Available days</label>
+        <div class="chips" id="w_days"></div>
+        <label>Available time slots</label>
+        <div class="chips" id="w_slots"></div>
+        <button class="primary" id="w_add">Add worker</button>
+      </div>
+      <div>
+        <div class="toolbar"><h3 style="margin:0">Workers</h3></div>
+        <div id="workerList" class="list"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer>ShiftMatch · data is saved locally in your browser (localStorage)</footer>
+
+<script>
+// ---------- Shared option lists ----------
+const SKILLS = ["Café / Barista","Cashier / Retail","Food Delivery","Waiter / Server",
+  "Kitchen Help","Tutoring","Warehouse","Event Staff","Cleaning","Admin / Office"];
+const AREAS  = ["Downtown","North","South","East","West","Central"];
+const DAYS   = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const SLOTS  = ["Morning","Afternoon","Evening","Night"];
+
+// Scoring weights (sum = 100)
+const WEIGHTS = { skills: 35, availability: 30, location: 15, pay: 20 };
+
+// ---------- State ----------
+const store = {
+  jobs: JSON.parse(localStorage.getItem("sm_jobs") || "[]"),
+  workers: JSON.parse(localStorage.getItem("sm_workers") || "[]"),
+};
+function save() {
+  localStorage.setItem("sm_jobs", JSON.stringify(store.jobs));
+  localStorage.setItem("sm_workers", JSON.stringify(store.workers));
+}
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+// ---------- Chip + select builders ----------
+function buildChips(containerId, options) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = "";
+  options.forEach(opt => {
+    const d = document.createElement("div");
+    d.className = "opt";
+    d.textContent = opt;
+    d.dataset.value = opt;
+    d.onclick = () => d.classList.toggle("sel");
+    el.appendChild(d);
+  });
+}
+function readChips(containerId) {
+  return [...document.querySelectorAll(`#${containerId} .opt.sel`)].map(d => d.dataset.value);
+}
+function clearChips(containerId) {
+  document.querySelectorAll(`#${containerId} .opt`).forEach(d => d.classList.remove("sel"));
+}
+function fillSelect(id, options, includeAny) {
+  const el = document.getElementById(id);
+  el.innerHTML = "";
+  if (includeAny) el.add(new Option("Anywhere", "Anywhere"));
+  options.forEach(o => el.add(new Option(o, o)));
+}
+
+// ---------- Matching engine ----------
+function overlapFraction(needed, have) {
+  if (!needed.length) return 1;            // nothing required => fully satisfied
+  const set = new Set(have);
+  const hit = needed.filter(x => set.has(x)).length;
+  return hit / needed.length;
+}
+function scoreMatch(job, worker) {
+  // Skills: how much of the job's required skills the worker covers
+  const skills = overlapFraction(job.skills, worker.skills) * 100;
+
+  // Availability: average of day-overlap and slot-overlap
+  const dayCov  = overlapFraction(job.days, worker.days);
+  const slotCov = overlapFraction(job.slots, worker.slots);
+  const availability = (dayCov * 0.6 + slotCov * 0.4) * 100;
+
+  // Location: exact area, or worker open to "Anywhere"
+  const location = (worker.area === "Anywhere" || worker.area === job.area) ? 100
+                 : 0;
+
+  // Pay: worker happy if offered >= desired; scaled below that
+  const pay = job.pay >= worker.pay ? 100
+            : worker.pay > 0 ? Math.max(0, Math.round((job.pay / worker.pay) * 100))
+            : 100;
+
+  const total = Math.round(
+    skills * WEIGHTS.skills / 100 +
+    availability * WEIGHTS.availability / 100 +
+    location * WEIGHTS.location / 100 +
+    pay * WEIGHTS.pay / 100
+  );
+  return { total, parts: { skills: Math.round(skills), availability: Math.round(availability), location, pay } };
+}
+function pillClass(score) { return score >= 75 ? "good" : score >= 45 ? "mid" : "bad"; }
+
+// ---------- Rendering: lists ----------
+function metaTags(o) {
+  const tags = [];
+  o.skills.forEach(s => tags.push(`<span class="tag">${s}</span>`));
+  tags.push(`<span class="tag">📍 ${o.area}</span>`);
+  tags.push(`<span class="tag pay">$${o.pay}/hr</span>`);
+  if (o.days.length)  tags.push(`<span class="tag">📅 ${o.days.join(" ")}</span>`);
+  if (o.slots.length) tags.push(`<span class="tag">🕑 ${o.slots.join(", ")}</span>`);
+  return `<div class="meta">${tags.join("")}</div>`;
+}
+function renderJobs() {
+  const el = document.getElementById("jobList");
+  document.getElementById("jobCount").textContent = store.jobs.length;
+  if (!store.jobs.length) { el.innerHTML = `<div class="empty">No jobs yet. Post one or load demo data.</div>`; return; }
+  el.innerHTML = store.jobs.map(j => `
+    <div class="item">
+      <div class="top">
+        <div><div class="title">${esc(j.title)}</div><div class="sub">${esc(j.emp || "")}</div></div>
+        <button class="del" data-del-job="${j.id}">remove</button>
+      </div>
+      ${metaTags(j)}
+    </div>`).join("");
+  el.querySelectorAll("[data-del-job]").forEach(b => b.onclick = () => {
+    store.jobs = store.jobs.filter(x => x.id !== b.dataset.delJob); save(); renderAll();
+  });
+}
+function renderWorkers() {
+  const el = document.getElementById("workerList");
+  document.getElementById("workerCount").textContent = store.workers.length;
+  if (!store.workers.length) { el.innerHTML = `<div class="empty">No workers yet. Add one or load demo data.</div>`; return; }
+  el.innerHTML = store.workers.map(w => `
+    <div class="item">
+      <div class="top">
+        <div><div class="title">${esc(w.name)}</div></div>
+        <button class="del" data-del-worker="${w.id}">remove</button>
+      </div>
+      ${metaTags(w)}
+    </div>`).join("");
+  el.querySelectorAll("[data-del-worker]").forEach(b => b.onclick = () => {
+    store.workers = store.workers.filter(x => x.id !== b.dataset.delWorker); save(); renderAll();
+  });
+}
+
+// ---------- Rendering: matches ----------
+function renderMatchTarget() {
+  const mode = document.getElementById("matchMode").value;
+  const sel = document.getElementById("matchTarget");
+  const items = mode === "job" ? store.jobs : store.workers;
+  sel.innerHTML = "";
+  if (!items.length) { sel.add(new Option(mode === "job" ? "— no jobs —" : "— no workers —", "")); }
+  items.forEach(it => sel.add(new Option(mode === "job" ? `${it.title} · ${it.area}` : `${it.name} · ${it.area}`, it.id)));
+}
+function barRow(label, val) {
+  return `<div class="bar-row"><span>${label}</span><div class="track"><div class="fill" style="width:${val}%"></div></div><span>${val}</span></div>`;
+}
+function renderMatches() {
+  const mode = document.getElementById("matchMode").value;
+  const targetId = document.getElementById("matchTarget").value;
+  const out = document.getElementById("matchResults");
+
+  if (!targetId) {
+    out.innerHTML = `<div class="empty">Add a ${mode === "job" ? "job" : "worker"} first, then pick one above to see ranked matches.</div>`;
+    return;
+  }
+  let results;
+  if (mode === "job") {
+    const job = store.jobs.find(j => j.id === targetId);
+    results = store.workers.map(w => ({ who: w, name: w.name, ...scoreMatch(job, w) }));
+  } else {
+    const worker = store.workers.find(w => w.id === targetId);
+    results = store.jobs.map(j => ({ who: j, name: `${j.title} · ${j.emp || ""}`, ...scoreMatch(j, worker) }));
+  }
+  results.sort((a, b) => b.total - a.total);
+
+  if (!results.length) {
+    out.innerHTML = `<div class="empty">No ${mode === "job" ? "workers" : "jobs"} to match against yet.</div>`;
+    return;
+  }
+  out.innerHTML = results.map(r => `
+    <div class="item">
+      <div class="top">
+        <div>
+          <div class="title">${esc(r.name)}</div>
+          <div class="sub">📍 ${r.who.area} · $${r.who.pay}/hr · ${r.who.skills.join(", ") || "—"}</div>
+        </div>
+        <span class="pill ${pillClass(r.total)}">${r.total}% match</span>
+      </div>
+      <div class="bars">
+        ${barRow("Skills", r.parts.skills)}
+        ${barRow("Availability", r.parts.availability)}
+        ${barRow("Location", r.parts.location)}
+        ${barRow("Pay", r.parts.pay)}
+      </div>
+      <div class="why">${explain(r.parts)}</div>
+    </div>`).join("");
+}
+function explain(p) {
+  const notes = [];
+  notes.push(p.skills === 100 ? "✅ all skills covered" : p.skills === 0 ? "❌ no skill overlap" : "⚠️ partial skill match");
+  notes.push(p.location === 100 ? "✅ area matches" : "❌ different area");
+  notes.push(p.availability >= 75 ? "✅ available" : p.availability === 0 ? "❌ not available" : "⚠️ limited availability");
+  notes.push(p.pay === 100 ? "✅ pay meets expectation" : "⚠️ pay below desired");
+  return notes.join(" &nbsp;·&nbsp; ");
+}
+
+// ---------- Helpers ----------
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function renderAll() { renderJobs(); renderWorkers(); renderMatchTarget(); renderMatches(); }
+
+// ---------- Form handlers ----------
+document.getElementById("j_add").onclick = () => {
+  const title = document.getElementById("j_title").value.trim();
+  if (!title) return alert("Please enter a job title.");
+  store.jobs.push({
+    id: uid(), title,
+    emp: document.getElementById("j_emp").value.trim(),
+    skills: readChips("j_skills"),
+    area: document.getElementById("j_area").value,
+    pay: Number(document.getElementById("j_pay").value) || 0,
+    days: readChips("j_days"),
+    slots: readChips("j_slots"),
+  });
+  save();
+  document.getElementById("j_title").value = "";
+  document.getElementById("j_emp").value = "";
+  document.getElementById("j_pay").value = "";
+  ["j_skills","j_days","j_slots"].forEach(clearChips);
+  renderAll();
+};
+document.getElementById("w_add").onclick = () => {
+  const name = document.getElementById("w_name").value.trim();
+  if (!name) return alert("Please enter a name.");
+  store.workers.push({
+    id: uid(), name,
+    skills: readChips("w_skills"),
+    area: document.getElementById("w_area").value,
+    pay: Number(document.getElementById("w_pay").value) || 0,
+    days: readChips("w_days"),
+    slots: readChips("w_slots"),
+  });
+  save();
+  document.getElementById("w_name").value = "";
+  document.getElementById("w_pay").value = "";
+  ["w_skills","w_days","w_slots"].forEach(clearChips);
+  renderAll();
+};
+
+// ---------- Tabs ----------
+document.querySelectorAll("nav.tabs button").forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll("nav.tabs button").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+  };
+});
+document.getElementById("matchMode").onchange = () => { renderMatchTarget(); renderMatches(); };
+document.getElementById("matchTarget").onchange = renderMatches;
+
+// ---------- Demo data + clear ----------
+document.getElementById("seedBtn").onclick = () => {
+  store.jobs = [
+    { id: uid(), title: "Weekend Barista", emp: "Bluebird Café", skills: ["Café / Barista"], area: "Downtown", pay: 18, days: ["Sat","Sun"], slots: ["Morning","Afternoon"] },
+    { id: uid(), title: "Evening Cashier", emp: "QuickMart", skills: ["Cashier / Retail"], area: "North", pay: 15, days: ["Mon","Wed","Fri"], slots: ["Evening"] },
+    { id: uid(), title: "Event Crew", emp: "StageWorks", skills: ["Event Staff","Cleaning"], area: "Central", pay: 20, days: ["Fri","Sat"], slots: ["Evening","Night"] },
+    { id: uid(), title: "Math Tutor", emp: "BrightMinds", skills: ["Tutoring"], area: "East", pay: 25, days: ["Tue","Thu"], slots: ["Afternoon"] },
+  ];
+  store.workers = [
+    { id: uid(), name: "Alex Tan", skills: ["Café / Barista","Waiter / Server"], area: "Downtown", pay: 16, days: ["Sat","Sun","Fri"], slots: ["Morning","Afternoon"] },
+    { id: uid(), name: "Priya R.", skills: ["Tutoring","Admin / Office"], area: "East", pay: 22, days: ["Tue","Thu"], slots: ["Afternoon","Evening"] },
+    { id: uid(), name: "Marcus Lee", skills: ["Event Staff","Cleaning","Warehouse"], area: "Anywhere", pay: 18, days: ["Fri","Sat","Sun"], slots: ["Evening","Night"] },
+    { id: uid(), name: "Sara K.", skills: ["Cashier / Retail"], area: "South", pay: 14, days: ["Mon","Wed","Fri"], slots: ["Evening"] },
+  ];
+  save(); renderAll();
+};
+document.getElementById("clearBtn").onclick = () => {
+  if (!confirm("Remove all jobs and workers?")) return;
+  store.jobs = []; store.workers = []; save(); renderAll();
+};
+
+// ---------- Init ----------
+["j_skills","w_skills"].forEach(id => buildChips(id, SKILLS));
+["j_days","w_days"].forEach(id => buildChips(id, DAYS));
+["j_slots","w_slots"].forEach(id => buildChips(id, SLOTS));
+fillSelect("j_area", AREAS, false);
+fillSelect("w_area", AREAS, true);
+renderAll();
+</script>
+</body>
+</html>
