@@ -126,14 +126,22 @@ const t = k => (T[lang][k] ?? T.en[k] ?? k);
 const PLAN_PRICE = { free:"RM0", pro:"RM29", premium:"RM99" };
 
 // ============ Towns (Penang) for distance ============
+// xy = simple grid for the demo; ll = real lat/lng used when live GPS is on.
 const TOWNS = {
-  georgetown:{n:"Georgetown",xy:[5,18]}, tanjung:{n:"Tanjung Tokong",xy:[4,21]},
-  gelugor:{n:"Gelugor",xy:[5,13]}, bayanlepas:{n:"Bayan Lepas",xy:[4,5]},
-  butterworth:{n:"Butterworth",xy:[12,17]}, bukitmertajam:{n:"Bukit Mertajam",xy:[16,12]},
+  georgetown:{n:"Georgetown",xy:[5,18],ll:[5.4141,100.3288]}, tanjung:{n:"Tanjung Tokong",xy:[4,21],ll:[5.4631,100.2840]},
+  gelugor:{n:"Gelugor",xy:[5,13],ll:[5.3593,100.3010]}, bayanlepas:{n:"Bayan Lepas",xy:[4,5],ll:[5.2945,100.2640]},
+  butterworth:{n:"Butterworth",xy:[12,17],ll:[5.3991,100.3638]}, bukitmertajam:{n:"Bukit Mertajam",xy:[16,12],ll:[5.3636,100.4667]},
 };
 const townName = k => (TOWNS[k]?.n || k);
 function dist(a,b){ const A=TOWNS[a]?.xy,B=TOWNS[b]?.xy; if(!A||!B) return 99;
   return Math.round(Math.hypot(A[0]-B[0],A[1]-B[1])); }
+function haversine(a,b){ const R=6371,dLat=(b[0]-a[0])*Math.PI/180,dLng=(b[1]-a[1])*Math.PI/180;
+  const s=Math.sin(dLat/2)**2+Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(s)); }
+// distance from the current worker to a job — live GPS if available, else town grid
+function distanceTo(job){ const w=me();
+  if(w && w.coords && TOWNS[job.town]?.ll) return Math.max(1, Math.round(haversine(w.coords, TOWNS[job.town].ll)));
+  return dist(w.town, job.town); }
 
 // ============ State ============
 const DB = {
@@ -142,10 +150,13 @@ const DB = {
   jobs: JSON.parse(localStorage.getItem("wg_jobs")||"null"),
   apps: JSON.parse(localStorage.getItem("wg_apps")||"null"),
   msgs: JSON.parse(localStorage.getItem("wg_msgs")||"null"),
+  notifs: JSON.parse(localStorage.getItem("wg_notifs")||"null"),
 };
 const S = { role:"worker", workerId:"me", employerId:"e1", tab:"jobs", dist:"all", urgent:false, modal:null, toast:null };
 const uid = () => Math.random().toString(36).slice(2,9);
-function save(){ for(const k of ["workers","employers","jobs","apps","msgs"]) localStorage.setItem("wg_"+k, JSON.stringify(DB[k])); }
+function save(){ for(const k of ["workers","employers","jobs","apps","msgs","notifs"]) localStorage.setItem("wg_"+k, JSON.stringify(DB[k])); }
+const FREE_LIMIT = 5;
+const PLANS = ["free","pro","premium"];
 
 function seed(){
   DB.workers = [
@@ -155,9 +166,9 @@ function seed(){
     {id:"w4",  name:"Arjun",    age:25, photo:"🧔", langs:["Tamil","English"],   town:"butterworth",  completed:7,  noshow:3},
     {id:"w5",  name:"Siti",     age:20, photo:"👧", langs:["Malay"],             town:"bayanlepas",   completed:0,  noshow:0},
   ];
-  DB.employers = [ {id:"e1", biz:"StageWorks Events", verified:true, ratingSum:23, ratingCount:5} ];
+  DB.employers = [ {id:"e1", biz:"StageWorks Events", verified:true, plan:"premium", ratingSum:23, ratingCount:5} ];
   DB.jobs = [
-    {id:"j1", empId:"e1", title:"Event Crew",      town:"georgetown",   date:"Sat 20 Aug", time:"8am – 6pm",  pay:"RM120/day",  needed:15, urg:"today"},
+    {id:"j1", empId:"e1", title:"Event Crew",      town:"georgetown",   date:"Sat 20 Aug", time:"8am – 6pm",  pay:"RM120/day",  needed:15, urg:"today",    featured:true},
     {id:"j2", empId:"e1", title:"Roadshow Promoter",town:"bayanlepas",  date:"Sun 21 Aug", time:"10am – 8pm", pay:"RM100/day",  needed:5,  urg:"tomorrow"},
     {id:"j3", empId:"e1", title:"Wedding Waiter",   town:"bukitmertajam",date:"Sat 27 Aug", time:"5pm – 11pm", pay:"RM90/night", needed:8,  urg:"normal"},
     {id:"j4", empId:"e1", title:"Warehouse Helper", town:"butterworth", date:"Mon 22 Aug", time:"9am – 5pm",  pay:"RM15/hour",  needed:3,  urg:"normal"},
@@ -168,9 +179,14 @@ function seed(){
     {id:uid(), jobId:"j1", workerId:"w4", friendId:null, status:"accepted"},
   ];
   DB.msgs = [ {id:uid(), jobId:"j1", workerId:"w4", from:"employer", text:"Hi, please come to the main gate at 7:45am.", ts:Date.now()-3600000} ];
+  DB.notifs = [
+    {id:uid(), forRole:"employer", forId:"e1", text:"Rahman "+T.en.notiApplied+" Event Crew", ts:Date.now()-5400000, read:false},
+    {id:uid(), forRole:"worker", forId:"me", text:"⚡ Bluebird Café — Weekend Barista nearby", ts:Date.now()-7200000, read:true},
+  ];
   save();
 }
 if(!DB.workers){ seed(); }
+if(!DB.notifs){ DB.notifs=[]; }   // guard for data saved before notifications existed
 
 // ============ Helpers ============
 const W = id => DB.workers.find(w=>w.id===id);
@@ -187,6 +203,16 @@ function myApp(jobId){ return DB.apps.find(a=>a.jobId===jobId && (a.workerId===S
 function empJobs(eid){ return DB.jobs.filter(j=>j.empId===eid); }
 function esc(s){ return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 function toast(msg){ S.toast=msg; render(); clearTimeout(toast._t); toast._t=setTimeout(()=>{S.toast=null;render();},2200); }
+// notifications
+function notify(forRole, forId, text){ DB.notifs.push({id:uid(), forRole, forId, text, ts:Date.now(), read:false}); }
+const notifTargetId = () => S.role==="worker" ? S.workerId : S.employerId;
+const myNotifs = () => DB.notifs.filter(n=>n.forRole===S.role && n.forId===notifTargetId()).sort((a,b)=>b.ts-a.ts);
+const unreadCount = () => myNotifs().filter(n=>!n.read).length;
+function timeAgo(ts){ const m=Math.round((Date.now()-ts)/60000); if(m<1)return"now"; if(m<60)return m+"m"; const h=Math.round(m/60); if(h<24)return h+"h"; return Math.round(h/24)+"d"; }
+// plans
+const empPlan = e => e.plan || "free";
+const isPremium = e => empPlan(e)==="premium";
+const planRank = e => empPlan(e)==="free" ? 1 : 0;   // 0 = priority listing
 
 // ============ Components ============
 function urgBadge(job){
@@ -199,7 +225,8 @@ function relChip(w){
   if(s==null) return `<span class="pill blue">✨ ${t("new")}</span>`;
   return `<span class="rel ${relClass(s)}">⭐ ${s}%</span>`;
 }
-function distLabel(job){ const d=dist(me().town, job.town); return d<=1? t("here") : `${d} ${t("kmAway")}`; }
+function distLabel(job){ const d=distanceTo(job); return d<=1? t("here") : `${d} ${t("kmAway")}`; }
+const isFeatured = job => job.featured && isPremium(E(job.empId));
 
 // ---- Worker: job card ----
 function jobCard(job){
@@ -208,7 +235,9 @@ function jobCard(job){
   if(mine) action=`<button class="btn alt" disabled>${t("appliedBadge")}</button>`;
   else if(left<=0) action=`<button class="btn alt" disabled>${t("full")}</button>`;
   else action=`<button class="btn" data-act="openApply" data-id="${job.id}">${t("apply")}</button>`;
-  return `<div class="card job">
+  const feat = isFeatured(job);
+  return `<div class="card job${feat?" feat":""}">
+    ${feat?`<div class="featbar">✨ ${t("featured")}</div>`:""}
     <div class="emp">🏢 ${esc(E(job.empId).biz)} ${E(job.empId).verified?`<span class="verified">✔ ${t("verified")}</span>`:""}</div>
     <div class="jt"><div class="name">${urgBadge(job)} ${esc(job.title)}</div><div class="pay">${esc(job.pay)}</div></div>
     <div class="meta">
@@ -220,14 +249,19 @@ function jobCard(job){
   </div>`;
 }
 function workerJobs(){
-  const meTown=me().town;
-  let jobs=DB.jobs.map(j=>({j,d:dist(meTown,j.town)}));
+  let jobs=DB.jobs.map(j=>({j,d:distanceTo(j)}));
   if(S.dist!=="all") jobs=jobs.filter(x=>x.d<=Number(S.dist));
   if(S.urgent) jobs=jobs.filter(x=>x.j.urg!=="normal");
   const urgRank={today:0,tomorrow:1,normal:2};
-  jobs.sort((a,b)=> (urgRank[a.j.urg]-urgRank[b.j.urg]) || (a.d-b.d));
+  // featured first, then urgent, then priority (paid plans), then nearest
+  jobs.sort((a,b)=> (isFeatured(b.j)-isFeatured(a.j))
+    || (urgRank[a.j.urg]-urgRank[b.j.urg])
+    || (planRank(E(a.j.empId))-planRank(E(b.j.empId)))
+    || (a.d-b.d));
   const chips=[["all",t("all")],["2","2"],["5","5"],["10","10"]];
+  const gpsOn=!!me().coords;
   const filt=`<div class="filters">
+    <button data-act="useGPS" class="${gpsOn?"on":""}">${t("useGPS")}</button>
     <button data-act="urg" class="${S.urgent?"on":""}">${t("urgentOnly")}</button>
     ${chips.map(([v,lab])=>`<button data-act="dist" data-v="${v}" class="${S.dist===v?"on":""}">${v==="all"?t("all"):t("within")+" "+lab+"km"}</button>`).join("")}
   </div>`;
@@ -289,8 +323,23 @@ function workerProfile(){
 
 // ---- Employer: post ----
 function employerPost(){
-  const towns=Object.entries(TOWNS).map(([k,v])=>`<option value="${k}">${v.n}</option>`).join("");
-  return `<div class="card"><h2>${t("postTitle")}</h2>
+  const e=E(S.employerId), towns=Object.entries(TOWNS).map(([k,v])=>`<option value="${k}">${v.n}</option>`).join("");
+  const used=empJobs(e.id).length, plan=empPlan(e);
+  // free plan: enforce the 5-job limit with an upgrade prompt
+  if(plan==="free" && used>=FREE_LIMIT){
+    return `<div class="card"><h2>${t("postTitle")}</h2>
+      <div class="empty" style="border-color:var(--accent);color:var(--text)">
+        🔒 ${t("freeLimit")}<br><span class="muted sm">${used}/${FREE_LIMIT} ${t("postsUsed")}</span>
+      </div>
+      <button class="btn amber" style="margin-top:12px" data-act="tab" data-v="biz">⭐ ${t("choosePlan")}</button>
+    </div>`;
+  }
+  const usage = plan==="free" ? `<div class="muted xs" style="margin-bottom:8px">${used}/${FREE_LIMIT} ${t("postsUsed")} · ${t("planFree")}</div>`
+    : `<div class="muted xs" style="margin-bottom:8px">${t("unlimited")} · ${t("plan"+plan[0].toUpperCase()+plan.slice(1))}</div>`;
+  const feature = isPremium(e)
+    ? `<label class="check"><input type="checkbox" id="p_feat" /> ${t("featureThis")}</label>`
+    : `<div class="muted xs" style="margin-top:10px">🔒 ${t("featureLocked")} <a data-act="tab" data-v="biz" style="color:var(--brand2);cursor:pointer">${t("choosePlan")}</a></div>`;
+  return `<div class="card"><h2>${t("postTitle")}</h2>${usage}
     <label>${t("fTitle")}</label><input id="p_title" placeholder="Event Crew" />
     <label>${t("fLoc")}</label><select id="p_town">${towns}</select>
     <div class="row">
@@ -303,6 +352,7 @@ function employerPost(){
     </div>
     <label>${t("fUrg")}</label>
     <select id="p_urg"><option value="today">${t("uToday")}</option><option value="tomorrow">${t("uTomorrow")}</option><option value="normal" selected>${t("uNormal")}</option></select>
+    ${feature}
     <button class="btn" style="margin-top:16px" data-act="publish">${t("publish")}</button>
   </div>`;
 }
@@ -354,21 +404,56 @@ function employerBiz(){
   const noshow=allApps.filter(a=>a.status==="noshow").length;
   const rate=(done+noshow)? Math.round(done/(done+noshow)*100):null;
   const avg=e.ratingCount? (e.ratingSum/e.ratingCount).toFixed(1):"—";
+  const plan=empPlan(e);
+  const planLabel={free:t("planFree"),pro:t("planPro"),premium:t("planPremium")};
   return `<div class="card" style="text-align:center">
     <div class="avatar" style="width:74px;height:74px;font-size:2.4rem;margin:4px auto 8px">🏢</div>
     <div style="font-weight:800;font-size:1.2rem">${esc(e.biz)} ${e.verified?`<span class="verified">✔</span>`:""}</div>
-    ${e.verified?`<span class="pill green">✔ ${t("verified")}</span>`:""}
+    <div style="margin-top:4px"><span class="pill ${plan==="free"?"gray":"gold"}">${plan==="free"?"":"⭐ "}${planLabel[plan]}</span></div>
     <div style="margin:14px 0"><div class="rel g" style="font-size:2rem">⭐ ${avg}</div><div class="muted sm">${t("avgRating")} · ${e.ratingCount} ${t("reviews")}</div></div>
     <div class="stat"><span class="muted">📋 ${t("jobsPosted")}</span><b>${jobs.length}</b></div>
     <div class="stat"><span class="muted">✅ ${t("completionRate")}</span><b>${rate==null?"—":rate+"%"}</b></div>
   </div>
+  ${plansCard(plan)}
   <div class="card"><div class="row">
     <button class="ghost" data-act="loadDemo">${t("loadDemo")}</button>
     <button class="ghost" data-act="clearAll">${t("clearAll")}</button>
   </div></div>`;
 }
+function plansCard(current){
+  const tiers=[
+    {k:"free",    name:t("planFree"),    desc:t("planFreeDesc")},
+    {k:"pro",     name:t("planPro"),     desc:t("planProDesc")},
+    {k:"premium", name:t("planPremium"), desc:t("planPremiumDesc")},
+  ];
+  return `<div class="card"><h3>⭐ ${t("plan")}</h3>
+    ${tiers.map(p=>{
+      const on=current===p.k;
+      return `<div class="tier${on?" on":""}">
+        <div style="flex:1">
+          <div style="font-weight:800">${p.name} <span class="muted sm">${PLAN_PRICE[p.k]}${p.k==="free"?"":t("perMonth")}</span></div>
+          <div class="muted xs">${p.desc}</div>
+        </div>
+        ${on?`<span class="pill green">✓ ${t("current")}</span>`
+            :`<button class="btn sm amber" data-act="setPlan" data-v="${p.k}">${t("choosePlan")}</button>`}
+      </div>`;
+    }).join("")}
+  </div>`;
+}
 
 // ---- Modals ----
+function modalNotifs(){
+  const list=myNotifs();
+  const body = list.length
+    ? list.map(n=>`<div class="noti${n.read?"":" unread"}">
+        <div>${esc(n.text)}</div><div class="muted xs" style="margin-top:2px">${timeAgo(n.ts)}</div></div>`).join("")
+    : `<div class="empty">${t("noNotifs")}</div>`;
+  return `<div class="ov" data-act="closeOv"><div class="sheet" onclick="event.stopPropagation()">
+    <div class="grab"></div>
+    <h3>🔔 ${t("notifs")}</h3>
+    <div style="margin-top:12px">${body}</div>
+  </div></div>`;
+}
 function modalApply(jobId){
   const job=J(jobId);
   const friends=DB.workers.filter(w=>w.id!==S.workerId && !DB.apps.some(a=>a.jobId===jobId&&(a.workerId===w.id||a.friendId===w.id)));
@@ -407,6 +492,15 @@ function modalChat(jobId, workerId){
 function render(){
   document.getElementById("tagline").textContent=t("tagline");
   document.getElementById("lang").value=lang;
+  // notification bell (injected into the header row, before the language picker)
+  const hrow=document.querySelector(".hrow");
+  if(hrow){
+    let bell=document.getElementById("bell");
+    if(!bell){ bell=document.createElement("button"); bell.id="bell"; bell.className="bell"; bell.dataset.act="openNotifs";
+      hrow.insertBefore(bell, document.getElementById("lang")); }
+    const n=unreadCount();
+    bell.innerHTML=`🔔${n?`<span class="bdot">${n>9?"9+":n}</span>`:""}`;
+  }
   // roles
   document.getElementById("roles").innerHTML=
     `<button data-act="role" data-v="worker" class="${S.role==="worker"?"on":""}">🔎 ${t("roleWorker")}</button>
@@ -435,7 +529,9 @@ function render(){
   let ov=document.getElementById("ovroot"); if(ov) ov.remove();
   if(S.modal){
     const root=document.createElement("div"); root.id="ovroot";
-    root.innerHTML = S.modal.type==="apply"? modalApply(S.modal.jobId) : modalChat(S.modal.jobId,S.modal.workerId);
+    root.innerHTML = S.modal.type==="apply"? modalApply(S.modal.jobId)
+      : S.modal.type==="notifs"? modalNotifs()
+      : modalChat(S.modal.jobId,S.modal.workerId);
     document.body.appendChild(root);
     const mi=document.getElementById("msgInput"); if(mi) mi.focus();
     const mb=document.getElementById("msgs"); if(mb) mb.scrollTop=mb.scrollHeight;
@@ -456,21 +552,35 @@ document.addEventListener("click", e=>{
     case "urg": S.urgent=!S.urgent; render(); break;
     case "openApply": S.modal={type:"apply",jobId:id}; render(); break;
     case "closeOv": S.modal=null; render(); break;
-    case "applyAlone":
-      DB.apps.push({id:uid(),jobId:id,workerId:S.workerId,friendId:null,status:"applied"});
-      save(); S.modal=null; S.tab="apps"; toast(t("appliedToast")); break;
-    case "applyFriend":
-      DB.apps.push({id:uid(),jobId:id,workerId:S.workerId,friendId:el.dataset.f,status:"applied"});
-      save(); S.modal=null; S.tab="apps"; toast(t("appliedToast")); break;
+    case "openNotifs": myNotifs().forEach(n=>n.read=true); save(); S.modal={type:"notifs"}; render(); break;
+    case "useGPS":
+      if(!navigator.geolocation){ toast(t("gpsFail")); break; }
+      navigator.geolocation.getCurrentPosition(
+        pos=>{ const w=me(); w.coords=[pos.coords.latitude,pos.coords.longitude]; save(); toast(t("gpsOn")); render(); },
+        ()=>toast(t("gpsFail")), {timeout:8000});
+      break;
+    case "setPlan": { const e=E(S.employerId); if(e){ e.plan=el.dataset.v; save(); toast(t("upgraded")); render(); } break; }
+    case "applyAlone": {
+      const job=J(id); DB.apps.push({id:uid(),jobId:id,workerId:S.workerId,friendId:null,status:"applied"});
+      notify("employer", job.empId, `${me().name} ${t("notiApplied")} ${job.title}`);
+      save(); S.modal=null; S.tab="apps"; toast(t("appliedToast")); break; }
+    case "applyFriend": {
+      const job=J(id); DB.apps.push({id:uid(),jobId:id,workerId:S.workerId,friendId:el.dataset.f,status:"applied"});
+      notify("employer", job.empId, `${me().name} ${t("notiApplied")} ${job.title} ${t("notiBuddy")}`);
+      save(); S.modal=null; S.tab="apps"; toast(t("appliedToast")); break; }
     case "chat": S.modal={type:"chat",jobId:id,workerId:el.dataset.w}; render(); break;
-    case "accept": setStatus(id,"accepted"); break;
-    case "decline": setStatus(id,"declined"); break;
+    case "accept": { const a=DB.apps.find(x=>x.id===id); if(a){ const job=J(a.jobId);
+        [a.workerId,a.friendId].filter(Boolean).forEach(wid=>notify("worker",wid,`${t("notiAccepted")} ${job.title}`)); }
+        setStatus(id,"accepted"); break; }
+    case "decline": { const a=DB.apps.find(x=>x.id===id); if(a){ const job=J(a.jobId);
+        [a.workerId,a.friendId].filter(Boolean).forEach(wid=>notify("worker",wid,`${t("notiDeclined")} ${job.title}`)); }
+        setStatus(id,"declined"); break; }
     case "complete": resolveJob(id,true); break;
     case "noshow": resolveJob(id,false); break;
     case "rate": { const n=e.target.dataset.n; if(n) doRate(id,Number(n)); break; }
     case "publish": publish(); break;
     case "loadDemo": if(confirm("Load demo data?")){ seed(); S.modal=null; render(); } break;
-    case "clearAll": if(confirm("Clear everything?")){ DB.workers=[me()?me():{id:"me",name:"You",age:24,photo:"🧑",langs:["English"],town:"georgetown",completed:0,noshow:0}]; DB.workers=[{id:"me",name:"You",age:24,photo:"🧑",langs:["English"],town:"georgetown",completed:0,noshow:0}]; DB.employers=[{id:"e1",biz:"My Business",verified:false,ratingSum:0,ratingCount:0}]; DB.jobs=[];DB.apps=[];DB.msgs=[]; S.workerId="me"; save(); render(); } break;
+    case "clearAll": if(confirm("Clear everything?")){ DB.workers=[{id:"me",name:"You",age:24,photo:"🧑",langs:["English"],town:"georgetown",completed:0,noshow:0}]; DB.employers=[{id:"e1",biz:"My Business",verified:false,plan:"free",ratingSum:0,ratingCount:0}]; DB.jobs=[];DB.apps=[];DB.msgs=[];DB.notifs=[]; S.workerId="me"; save(); render(); } break;
   }
 });
 document.addEventListener("change", e=>{
@@ -481,7 +591,10 @@ document.addEventListener("submit", e=>{
   const f=e.target.closest("[data-act='sendForm']"); if(!f) return;
   e.preventDefault();
   const input=document.getElementById("msgInput"); const text=input.value.trim(); if(!text) return;
-  DB.msgs.push({id:uid(),jobId:f.dataset.id,workerId:f.dataset.w,from:S.role,text,ts:Date.now()});
+  const jobId=f.dataset.id, wId=f.dataset.w, job=J(jobId);
+  DB.msgs.push({id:uid(),jobId,workerId:wId,from:S.role,text,ts:Date.now()});
+  if(S.role==="worker") notify("employer", job.empId, `${t("notiMsg")} ${job.title}`);
+  else notify("worker", wId, `${t("notiMsg")} ${job.title}`);
   save(); render();
 });
 function setStatus(appId,status){ const a=DB.apps.find(x=>x.id===appId); if(a){a.status=status; save(); render();} }
@@ -497,11 +610,19 @@ function doRate(appId, n){
   save(); render();
 }
 function publish(){
+  const e=E(S.employerId);
+  if(empPlan(e)==="free" && empJobs(e.id).length>=FREE_LIMIT){ toast(t("freeLimit")); return; }
   const v=id=>document.getElementById(id).value.trim();
   const title=v("p_title"); if(!title){ alert("Job title?"); return; }
-  DB.jobs.unshift({ id:uid(), empId:S.employerId, title,
+  const featEl=document.getElementById("p_feat");
+  const urg=document.getElementById("p_urg").value;
+  const job={ id:uid(), empId:S.employerId, title,
     town:document.getElementById("p_town").value, date:v("p_date")||"-", time:v("p_time")||"-",
-    pay:v("p_pay")||"-", needed:Math.max(1,Number(v("p_needed"))||1), urg:document.getElementById("p_urg").value });
+    pay:v("p_pay")||"-", needed:Math.max(1,Number(v("p_needed"))||1), urg,
+    featured: isPremium(e) && featEl && featEl.checked };
+  DB.jobs.unshift(job);
+  // urgent jobs ping all workers
+  if(urg!=="normal") DB.workers.forEach(w=>notify("worker", w.id, `${t("notiUrgent")} ${title}`));
   save(); S.tab="jobs"; toast(t("postedToast"));
 }
 

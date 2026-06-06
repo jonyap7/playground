@@ -83,3 +83,23 @@
   .chatform{display:flex;gap:8px;}
   .chatform input{flex:1;}
   .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#111827;border:1px solid var(--line);color:#fff;padding:11px 16px;border-radius:12px;font-size:.88rem;z-index:40;box-shadow:0 8px 24px rgba(0,0,0,.4);}
+
+  /* --- notifications bell --- */
+  .bell{position:relative;margin-left:auto;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+    color:#fff;border-radius:9px;padding:6px 9px;font-size:1.05rem;line-height:1;cursor:pointer;}
+  .bdot{position:absolute;top:-5px;right:-5px;background:var(--hot);color:#fff;font-size:.62rem;font-weight:800;
+    min-width:17px;height:17px;border-radius:99px;display:grid;place-items:center;padding:0 4px;border:1px solid var(--app);}
+  .hrow .lang{margin-left:8px;}
+  .noti{padding:10px 12px;border-radius:10px;background:var(--card2);margin-bottom:8px;border-left:3px solid transparent;font-size:.9rem;}
+  .noti.unread{border-left-color:var(--brand2);background:rgba(34,197,94,.08);}
+  /* --- featured jobs --- */
+  .card.feat{border-color:var(--accent);box-shadow:0 0 0 1px rgba(245,158,11,.35);overflow:hidden;}
+  .featbar{margin:-14px -14px 10px;padding:5px 14px;font-weight:800;font-size:.72rem;color:#1a1205;
+    background:linear-gradient(90deg,#fbbf24,#f59e0b);}
+  .pill.gold{background:rgba(245,158,11,.18);color:#fcd34d;}
+  /* --- plan tiers --- */
+  .tier{display:flex;align-items:center;gap:10px;padding:11px 0;border-top:1px solid var(--line);}
+  .tier:first-of-type{border-top:none;}
+  .tier.on{opacity:1;}
+  .check{display:flex;align-items:center;gap:9px;margin-top:12px;color:var(--text);font-size:.92rem;cursor:pointer;font-weight:600;}
+  .check input{width:auto;}
