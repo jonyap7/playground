@@ -143,3 +143,17 @@
   .emojis{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
   .emojis button{font-size:1.5rem;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:5px 8px;cursor:pointer;line-height:1;}
   .emojis button.on{border-color:var(--brand2);background:rgba(34,197,94,.15);}
+
+  /* --- refined worker toolbar --- */
+  .topbar{display:flex;gap:8px;align-items:stretch;margin-bottom:10px;}
+  .topbar .searchwrap{flex:1;margin-bottom:0;}
+  .seg.compact{margin-bottom:0;padding:3px;flex:none;}
+  .seg.compact button{padding:8px 12px;font-size:.82rem;}
+  .toolrow{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+  .distsel{flex:1;min-width:130px;padding:10px 12px;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--text);font-size:.85rem;font-weight:600;}
+  .tgl{background:var(--card);border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:9px 13px;font-size:.85rem;font-weight:700;cursor:pointer;}
+  .tgl.on{background:var(--brand);border-color:var(--brand);color:#fff;}
+  /* --- real map --- */
+  .mapcard{padding:0;overflow:hidden;}
+  .leafmap{width:100%;height:62vh;min-height:340px;background:#0d1726;}
+  .leafmap .leaflet-popup-content{margin:10px 12px;}

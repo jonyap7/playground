@@ -310,10 +310,7 @@ function jobCard(job){
       <span>📍 ${esc(townName(job.town))} · ${distLabel(job)}</span>
     </div>
     <div class="spots muted">👥 ${t("needPax")} ${job.needed} ${t("pax")} · <b style="color:var(--brand2)">${left}</b> ${t("spotsLeft")}</div>
-    <div style="margin-top:12px;display:flex;gap:8px">
-      <div style="flex:1">${action}</div>
-      <button class="btn wa" data-act="share" data-id="${job.id}" title="${t("shareWA")}" aria-label="${t("shareWA")}">🟢</button>
-    </div>
+    <div style="margin-top:12px">${action}</div>
   </div>`;
 }
 function filteredJobs(){
@@ -333,49 +330,85 @@ function filteredJobs(){
 }
 function workerJobs(){
   const jobs=filteredJobs();
-  const chips=[["all",t("all")],["2","2"],["5","5"],["10","10"]];
   const gpsOn=!!me().coords;
-  const viewToggle=`<div class="seg">
-    <button data-act="jobsView" data-v="list" class="${S.jobsView==="list"?"on":""}">📋 ${t("list")}</button>
-    <button data-act="jobsView" data-v="map" class="${S.jobsView==="map"?"on":""}">🗺️ ${t("map")}</button>
+  const topbar=`<div class="topbar">
+    <div class="searchwrap"><span>🔎</span><input id="jobSearch" class="search" placeholder="${t("searchPh")}" value="${esc(S.q)}" autocomplete="off" /></div>
+    <div class="seg compact">
+      <button data-act="jobsView" data-v="list" class="${S.jobsView==="list"?"on":""}">${t("list")}</button>
+      <button data-act="jobsView" data-v="map" class="${S.jobsView==="map"?"on":""}">${t("map")}</button>
+    </div>
   </div>`;
-  const search=`<div class="searchwrap"><span>🔎</span><input id="jobSearch" class="search" placeholder="${t("searchPh")}" value="${esc(S.q)}" autocomplete="off" /></div>`;
   const catRow=`<div class="filters cats">
     <button data-act="cat" data-v="all" class="${S.cat==="all"?"on":""}">${t("all")}</button>
     ${CAT_IDS.map(id=>`<button data-act="cat" data-v="${id}" class="${S.cat===id?"on":""}">${catName(id)}</button>`).join("")}
   </div>`;
-  const filt=`<div class="filters">
-    <button data-act="useGPS" class="${gpsOn?"on":""}">${t("useGPS")}</button>
-    <button data-act="savedOnly" class="${S.savedOnly?"on":""}">${t("saved")}</button>
-    <button data-act="urg" class="${S.urgent?"on":""}">${t("urgentOnly")}</button>
-    ${chips.map(([v,lab])=>`<button data-act="dist" data-v="${v}" class="${S.dist===v?"on":""}">${v==="all"?t("all"):t("within")+" "+lab+"km"}</button>`).join("")}
+  const distSel=`<select class="distsel" data-act="distSel">
+    ${[["all",t("all")],["2","2km"],["5","5km"],["10","10km"]].map(([v,l])=>`<option value="${v}" ${S.dist===v?"selected":""}>${v==="all"?"📍 "+t("all"):t("within")+" "+l}</option>`).join("")}
+  </select>`;
+  const toolrow=`<div class="toolrow">
+    ${distSel}
+    <button class="tgl ${gpsOn?"on":""}" data-act="useGPS">📍 GPS</button>
+    <button class="tgl ${S.urgent?"on":""}" data-act="urg">⚡</button>
+    <button class="tgl ${S.savedOnly?"on":""}" data-act="savedOnly">🔖</button>
   </div>`;
   let body;
   if(S.jobsView==="map") body=workerMap(jobs);
   else body = jobs.length? jobs.map(x=>jobCard(x.j)).join("")
     : `<div class="empty">${S.savedOnly?t("noSaved"):t("noJobs")}</div>`;
-  return viewToggle+search+catRow+filt+body;
+  return topbar+catRow+toolrow+body;
 }
-// ---- Worker: map view (no external tiles — relative pins + distance rings) ----
+// ---- Worker: map view (real map via Leaflet + OpenStreetMap) ----
 function workerMap(jobs){
+  return `<div class="card mapcard"><div id="leafmap" class="leafmap"></div>
+    ${jobs.length?"":`<div class="empty" style="margin-top:10px">${S.savedOnly?t("noSaved"):t("noJobs")}</div>`}</div>`;
+}
+let leafletP=null;
+function loadLeaflet(){
+  if(typeof window==="undefined") return Promise.reject();
+  if(window.L) return Promise.resolve(window.L);
+  if(leafletP) return leafletP;
+  if(!document.getElementById("leaflet-css")){
+    const lk=document.createElement("link"); lk.id="leaflet-css"; lk.rel="stylesheet";
+    lk.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"; document.head.appendChild(lk);
+  }
+  leafletP=new Promise((res,rej)=>{
+    const s=document.createElement("script"); s.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    s.onload=()=>res(window.L); s.onerror=rej; document.head.appendChild(s);
+  });
+  return leafletP;
+}
+function initWorkerMap(){
+  const el=document.getElementById("leafmap"); if(!el) return;
+  loadLeaflet().then(L=>{
+    if(!document.body.contains(el)) return;            // view changed before load
+    const w=me(), o=w.coords || TOWNS[w.town]?.ll || [5.41,100.33];
+    const map=L.map(el,{attributionControl:false}).setView(o,12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map);
+    L.circleMarker(o,{radius:8,color:"#fff",weight:2,fillColor:"#38bdf8",fillOpacity:1}).addTo(map).bindTooltip("📍 "+esc(me().name));
+    const pts=[o];
+    filteredJobs().forEach(({j})=>{ const ll=TOWNS[j.town]?.ll; if(!ll) return; pts.push(ll);
+      L.marker(ll).addTo(map).bindPopup(
+        `<b>${esc(j.title)}</b><br>${esc(j.pay)} · ${esc(townName(j.town))}<br><button class="btn sm" style="margin-top:6px" data-act="openApply" data-id="${j.id}">${t("apply")}</button>`);
+    });
+    if(pts.length>1) map.fitBounds(pts,{padding:[34,34],maxZoom:14});
+    setTimeout(()=>map.invalidateSize(),120);
+  }).catch(()=>{ const e2=document.getElementById("leafmap"); if(e2) e2.innerHTML=svgMiniMap(filteredJobs()); });
+}
+// offline fallback: relative pins + distance rings (no tiles needed)
+function svgMiniMap(jobs){
   const w=me(), o=w.coords || TOWNS[w.town]?.ll || [5.41,100.33];
   const C=160, maxKm=12, scale=148/maxKm, cosL=Math.cos(o[0]*Math.PI/180);
-  const rings=[2,5,10].map(km=>`<circle cx="${C}" cy="${C}" r="${km*scale}" class="ring"/><text x="${C}" y="${C-km*scale+12}" class="ringlbl">${km}km</text>`).join("");
-  const pins=jobs.map(({j})=>{
-    const jll=TOWNS[j.town]?.ll||o;
-    let kx=(jll[1]-o[1])*111.32*cosL, ky=(jll[0]-o[0])*110.57;
-    let km=Math.hypot(kx,ky); if(km>maxKm){ const f=maxKm/km; kx*=f; ky*=f; }
-    const px=C+kx*scale, py=C-ky*scale;
-    return `<g class="pin" data-act="openApply" data-id="${j.id}" transform="translate(${px.toFixed(1)},${py.toFixed(1)})">
+  const rings=[2,5,10].map(km=>`<circle cx="${C}" cy="${C}" r="${km*scale}" class="ring"/><text x="${C}" y="${(C-km*scale+12).toFixed(0)}" class="ringlbl">${km}km</text>`).join("");
+  const pins=jobs.map(({j})=>{ const jll=TOWNS[j.town]?.ll||o;
+    let kx=(jll[1]-o[1])*111.32*cosL, ky=(jll[0]-o[0])*110.57, km=Math.hypot(kx,ky);
+    if(km>maxKm){ const f=maxKm/km; kx*=f; ky*=f; }
+    return `<g class="pin" data-act="openApply" data-id="${j.id}" transform="translate(${(C+kx*scale).toFixed(1)},${(C-ky*scale).toFixed(1)})">
       <circle r="15" class="pindot ${isFeatured(j)?"feat":j.urg!=="normal"?"urg":""}"/>
-      <text class="pinemo" y="5" text-anchor="middle">${CATS[j.cat||"general"]||"🧰"}</text>
-      <text class="pinlbl" y="30" text-anchor="middle">${esc(j.pay)}</text></g>`;
+      <text class="pinemo" y="5" text-anchor="middle">${CATS[j.cat||"general"]||"🧰"}</text></g>`;
   }).join("");
-  return `<div class="card mapcard"><svg viewBox="0 0 320 320" class="map">
-    ${rings}
+  return `<svg viewBox="0 0 320 320" class="map">${rings}
     <g transform="translate(${C},${C})"><circle r="9" class="mehere"/><text y="-14" text-anchor="middle" class="melbl">📍 ${esc(me().name)}</text></g>
-    ${pins}
-  </svg>${jobs.length?"":`<div class="empty" style="margin-top:10px">${S.savedOnly?t("noSaved"):t("noJobs")}</div>`}</div>`;
+    ${pins}</svg>`;
 }
 
 // ---- Worker: my applications ----
@@ -673,6 +706,8 @@ function render(){
   app.innerHTML=html;
   // keep focus in the search box while typing
   if(S._sfocus){ const js=document.getElementById("jobSearch"); if(js){ js.focus(); const v=js.value; js.setSelectionRange(v.length,v.length); } S._sfocus=false; }
+  // mount the real map when in map view
+  if(S.role==="worker" && S.tab==="jobs" && S.jobsView==="map") initWorkerMap();
   // modal
   let ov=document.getElementById("ovroot"); if(ov) ov.remove();
   if(S.modal){
@@ -755,6 +790,7 @@ document.addEventListener("click", e=>{
 document.addEventListener("change", e=>{
   if(e.target.id==="lang"){ lang=e.target.value; localStorage.setItem("wg_lang",lang); render(); }
   if(e.target.dataset.act==="actAs"){ S.workerId=e.target.value; render(); }
+  if(e.target.dataset.act==="distSel"){ S.dist=e.target.value; render(); }
 });
 document.addEventListener("input", e=>{
   if(e.target.id==="jobSearch"){ S.q=e.target.value; S._sfocus=true; render(); }

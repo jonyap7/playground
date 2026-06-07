@@ -81,9 +81,9 @@ to iterate on; it can be ported to React components incrementally as it grows.
 - **Categories & search** — jobs are tagged by gig type (Event Crew, Promoter,
   Waiter, Retail, Warehouse, Roadshow, Kitchen, Cleaning, Emcee, Photographer…)
   with icons, a quick category filter row, and a keyword search box.
-- **Map view** — a List ⇄ Map toggle plots nearby jobs as pins with 2/5/10 km
-  distance rings around you (no API key / tiles needed; works offline). Tap a
-  pin to apply.
+- **Map view** — a List ⇄ Map toggle shows nearby jobs on a real OpenStreetMap
+  map (Leaflet, no API key); tap a marker to apply. Falls back to an offline
+  distance-ring mini-map if map tiles can't load.
 - **Saved jobs & history** — bookmark jobs (🔖) and filter to saved only; filter
   your applications by status (Waiting / Accepted / Completed).
 - **Multilingual** — full UI in English, Bahasa, 中文 and বাংলা.
