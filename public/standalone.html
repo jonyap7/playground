@@ -145,6 +145,11 @@
   .map .pindot.feat{fill:#f59e0b;}
   .map .pinemo{font-size:14px;}
   .map .pinlbl{fill:#cbd5e1;font-size:9px;font-weight:700;}
+
+  /* --- emoji photo picker --- */
+  .emojis{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .emojis button{font-size:1.5rem;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:5px 8px;cursor:pointer;line-height:1;}
+  .emojis button.on{border-color:var(--brand2);background:rgba(34,197,94,.15);}
 </style>
 </head>
 <body>
@@ -307,6 +312,15 @@ const EXTRA3 = {
   zh:{searchPh:"搜索工作…",category:"类别",list:"列表",map:"地图",saved:"🔖 收藏",noSaved:"还没有收藏。点 🤍 收藏工作。",room:"同步房间",cloudOn:"云同步已开",cloudOff:"仅本地",fAll:"全部"},
   bn:{searchPh:"কাজ খুঁজুন…",category:"বিভাগ",list:"তালিকা",map:"মানচিত্র",saved:"🔖 সংরক্ষিত",noSaved:"সংরক্ষিত কাজ নেই। 🤍 চাপুন।",room:"সিংক রুম",cloudOn:"ক্লাউড সিংক চালু",cloudOff:"শুধু লোকাল",fAll:"সব"} };
 for(const l in T) Object.assign(T[l], EXTRA3[l]||{});
+// profile editing strings
+const EXTRA4 = {
+  en:{edit:"Edit",save:"Save",photo:"Photo",withdraw:"Withdraw",hometown:"Home area",editBiz:"Edit business",profileSaved:"Saved!",bizName2:"Business name"},
+  ms:{edit:"Sunting",save:"Simpan",photo:"Foto",withdraw:"Tarik balik",hometown:"Kawasan rumah",editBiz:"Sunting perniagaan",profileSaved:"Disimpan!",bizName2:"Nama perniagaan"},
+  zh:{edit:"编辑",save:"保存",photo:"头像",withdraw:"撤回",hometown:"所在地区",editBiz:"编辑商家",profileSaved:"已保存！",bizName2:"商家名称"},
+  bn:{edit:"এডিট",save:"সেভ",photo:"ছবি",withdraw:"প্রত্যাহার",hometown:"এলাকা",editBiz:"ব্যবসা এডিট",profileSaved:"সেভ হয়েছে!",bizName2:"ব্যবসার নাম"} };
+for(const l in T) Object.assign(T[l], EXTRA4[l]||{});
+const PHOTOS = ["🧑","👨","👩","🧔","👧","👦","🧕","👳","🧑‍🦱","👨‍🦳","👩‍🦰","🧓"];
+const LANGS  = ["English","Malay","Chinese","Tamil","Bengali","Indonesian","Burmese","Nepali"];
 // ============ Job categories ============
 const CATS = { event:"🎪", promoter:"📣", waiter:"🍽️", retail:"🛍️", warehouse:"📦", roadshow:"🚚", kitchen:"👨‍🍳", cleaning:"🧹", emcee:"🎤", photographer:"📸", general:"🧰" };
 const CAT_IDS = Object.keys(CATS);
@@ -401,6 +415,12 @@ function acceptedFill(jobId){ return DB.apps.filter(a=>a.jobId===jobId&&(a.statu
 function spotsLeft(job){ return Math.max(0, job.needed - acceptedFill(job.id)); }
 function savedSet(){ const w=me(); if(!w.saved) w.saved=[]; return w.saved; }
 const isSaved = jobId => savedSet().includes(jobId);
+// keep typed values when re-rendering the edit-worker sheet (photo/lang toggles)
+function syncWorkerDraft(){
+  if(!S.modal || S.modal.type!=="editWorker") return;
+  const d=S.modal.draft, n=document.getElementById("ew_name"), a=document.getElementById("ew_age"), tn=document.getElementById("ew_town");
+  if(n) d.name=n.value; if(a) d.age=a.value; if(tn) d.town=tn.value;
+}
 function appsForJob(id){ return DB.apps.filter(a=>a.jobId===id); }
 function myApp(jobId){ return DB.apps.find(a=>a.jobId===jobId && (a.workerId===S.workerId||a.friendId===S.workerId)); }
 function empJobs(eid){ return DB.jobs.filter(j=>j.empId===eid); }
@@ -556,9 +576,12 @@ function workerApps(){
     return `<div class="card">
       <div class="jt"><div class="name" style="font-size:1rem">${esc(job.title)}${buddy}</div><div class="pay" style="font-size:1rem">${esc(job.pay)}</div></div>
       <div class="meta"><span>🏢 ${esc(E(job.empId).biz)}</span><span>📅 ${esc(job.date)}</span><span>📍 ${esc(townName(job.town))}</span></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;gap:8px">
         <span class="pill ${statusPill[a.status]}">${t(a.status)}</span>
-        <button class="ghost" data-act="chat" data-id="${job.id}" data-w="${a.workerId}">💬 ${t("chatWith")}</button>
+        <div style="display:flex;gap:8px">
+          ${a.status==="applied"?`<button class="ghost" data-act="withdraw" data-id="${a.id}">${t("withdraw")}</button>`:""}
+          <button class="ghost" data-act="chat" data-id="${job.id}" data-w="${a.workerId}">💬 ${t("chatWith")}</button>
+        </div>
       </div>${rate}
     </div>`;
   }).join("");
@@ -579,6 +602,7 @@ function workerProfile(){
     </div>
     <div class="stat"><span class="muted">✅ ${t("completedJobs")}</span><b>${w.completed}</b></div>
     <div class="stat"><span class="muted">⛔ ${t("noshows")}</span><b>${w.noshow}</b></div>
+    <button class="btn alt" data-act="editWorker" style="margin-top:12px">✏️ ${t("edit")}</button>
   </div>
   <div class="card">
     <label>${t("actingAs")}</label>
@@ -687,6 +711,7 @@ function employerBiz(){
     <div style="margin:14px 0"><div class="rel g" style="font-size:2rem">⭐ ${avg}</div><div class="muted sm">${t("avgRating")} · ${e.ratingCount} ${t("reviews")}</div></div>
     <div class="stat"><span class="muted">📋 ${t("jobsPosted")}</span><b>${jobs.length}</b></div>
     <div class="stat"><span class="muted">✅ ${t("completionRate")}</span><b>${rate==null?"—":rate+"%"}</b></div>
+    <button class="btn alt" data-act="editEmployer" style="margin-top:12px">✏️ ${t("editBiz")}</button>
   </div>
   ${plansCard(plan)}
   <div class="card"><div class="row">
@@ -716,13 +741,36 @@ function plansCard(current){
 }
 
 // ---- Modals ----
+function modalEditWorker(){
+  const d=S.modal.draft;
+  const towns=Object.entries(TOWNS).map(([k,v])=>`<option value="${k}" ${d.town===k?"selected":""}>${v.n}</option>`).join("");
+  return `<div class="ov" data-act="closeOv"><div class="sheet" data-act="stop">
+    <div class="grab"></div><h3>✏️ ${t("edit")}</h3>
+    <label>${t("photo")}</label>
+    <div class="emojis">${PHOTOS.map(p=>`<button data-act="pickPhoto" data-v="${p}" class="${d.photo===p?"on":""}">${p}</button>`).join("")}</div>
+    <label>${t("name")}</label><input id="ew_name" value="${esc(d.name)}" />
+    <label>${t("age")}</label><input id="ew_age" type="number" min="13" value="${esc(d.age)}" />
+    <label>${t("hometown")}</label><select id="ew_town">${towns}</select>
+    <label>${t("languages")}</label>
+    <div class="filters" style="flex-wrap:wrap">${LANGS.map(l=>`<button data-act="toggleLang" data-v="${l}" class="${d.langs.includes(l)?"on":""}">${l}</button>`).join("")}</div>
+    <button class="btn" style="margin-top:16px" data-act="saveWorker">${t("save")}</button>
+  </div></div>`;
+}
+function modalEditEmployer(){
+  const d=S.modal.draft;
+  return `<div class="ov" data-act="closeOv"><div class="sheet" data-act="stop">
+    <div class="grab"></div><h3>✏️ ${t("editBiz")}</h3>
+    <label>${t("bizName2")}</label><input id="ee_name" value="${esc(d.biz)}" />
+    <button class="btn" style="margin-top:16px" data-act="saveEmployer">${t("save")}</button>
+  </div></div>`;
+}
 function modalNotifs(){
   const list=myNotifs();
   const body = list.length
     ? list.map(n=>`<div class="noti${n.read?"":" unread"}">
         <div>${esc(n.text)}</div><div class="muted xs" style="margin-top:2px">${timeAgo(n.ts)}</div></div>`).join("")
     : `<div class="empty">${t("noNotifs")}</div>`;
-  return `<div class="ov" data-act="closeOv"><div class="sheet" onclick="event.stopPropagation()">
+  return `<div class="ov" data-act="closeOv"><div class="sheet" data-act="stop">
     <div class="grab"></div>
     <h3>🔔 ${t("notifs")}</h3>
     <div style="margin-top:12px">${body}</div>
@@ -731,7 +779,7 @@ function modalNotifs(){
 function modalApply(jobId){
   const job=J(jobId);
   const friends=DB.workers.filter(w=>w.id!==S.workerId && !DB.apps.some(a=>a.jobId===jobId&&(a.workerId===w.id||a.friendId===w.id)));
-  return `<div class="ov" data-act="closeOv"><div class="sheet" onclick="event.stopPropagation()">
+  return `<div class="ov" data-act="closeOv"><div class="sheet" data-act="stop">
     <div class="grab"></div>
     <h3>${esc(job.title)} · ${esc(job.pay)}</h3>
     <div class="muted sm" style="margin-bottom:14px">${t("howApply")}</div>
@@ -751,7 +799,7 @@ function modalChat(jobId, workerId){
     return `<div class="bub ${mine?"me":"them"}"><div class="who">${who}</div>${esc(m.text)}</div>`;
   }).join("") : `<div class="muted sm" style="text-align:center;margin:auto">—</div>`;
   const title = S.role==="employer"? `${esc(w.name)}` : `${esc(E(job.empId).biz)}`;
-  return `<div class="ov" data-act="closeOv"><div class="sheet" onclick="event.stopPropagation()">
+  return `<div class="ov" data-act="closeOv"><div class="sheet" data-act="stop">
     <div class="grab"></div>
     <h3>💬 ${title}</h3><div class="muted sm">${esc(job.title)}</div>
     <div class="msgs" id="msgs">${bubbles}</div>
@@ -807,6 +855,8 @@ function render(){
     const root=document.createElement("div"); root.id="ovroot";
     root.innerHTML = S.modal.type==="apply"? modalApply(S.modal.jobId)
       : S.modal.type==="notifs"? modalNotifs()
+      : S.modal.type==="editWorker"? modalEditWorker()
+      : S.modal.type==="editEmployer"? modalEditEmployer()
       : modalChat(S.modal.jobId,S.modal.workerId);
     document.body.appendChild(root);
     const mi=document.getElementById("msgInput"); if(mi) mi.focus();
@@ -831,8 +881,18 @@ document.addEventListener("click", e=>{
     case "savedOnly": S.savedOnly=!S.savedOnly; render(); break;
     case "appFilter": S.appFilter=el.dataset.v; render(); break;
     case "save": { const set=savedSet(); const i=set.indexOf(id); if(i<0) set.push(id); else set.splice(i,1); save(); render(); break; }
+    case "withdraw": DB.apps=DB.apps.filter(x=>x.id!==id); save(); render(); break;
+    case "editWorker": { const w=me(); S.modal={type:"editWorker",draft:{name:w.name,age:w.age,photo:w.photo,town:w.town,langs:[...(w.langs||[])]}}; render(); break; }
+    case "editEmployer": { const e=E(S.employerId); S.modal={type:"editEmployer",draft:{biz:e.biz}}; render(); break; }
+    case "pickPhoto": syncWorkerDraft(); S.modal.draft.photo=el.dataset.v; render(); break;
+    case "toggleLang": { syncWorkerDraft(); const ls=S.modal.draft.langs, v=el.dataset.v, i=ls.indexOf(v); if(i<0) ls.push(v); else ls.splice(i,1); render(); break; }
+    case "saveWorker": { syncWorkerDraft(); const d=S.modal.draft, w=me();
+        w.name=d.name.trim()||w.name; w.age=Math.max(13,Number(d.age)||w.age); w.photo=d.photo; w.town=d.town; w.langs=d.langs.length?d.langs:w.langs;
+        save(); S.modal=null; toast(t("profileSaved")); break; }
+    case "saveEmployer": { const v=document.getElementById("ee_name").value.trim(); const e=E(S.employerId); if(v) e.biz=v; save(); S.modal=null; toast(t("profileSaved")); break; }
     case "openApply": S.modal={type:"apply",jobId:id}; render(); break;
     case "closeOv": S.modal=null; render(); break;
+    case "stop": break;  // click inside a sheet — swallow so it doesn't close the overlay
     case "openNotifs": myNotifs().forEach(n=>n.read=true); save(); S.modal={type:"notifs"}; render(); break;
     case "useGPS":
       if(!navigator.geolocation){ toast(t("gpsFail")); break; }
