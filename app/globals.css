@@ -108,3 +108,12 @@
   .btn.wa{background:#25d366;color:#053b22;font-weight:800;}
   .btn.wa:not(.full){width:auto;padding:13px 14px;flex:none;}
   .btn.wa.full{width:100%;}
+
+  /* --- search + categories --- */
+  .searchwrap{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;padding:0 12px;margin-bottom:10px;}
+  .searchwrap span{opacity:.6;}
+  .search{border:none;background:transparent;padding:11px 0;font-size:.95rem;}
+  .search:focus{outline:none;}
+  .filters.cats{margin-bottom:8px;}
+  .pill.cat{background:rgba(99,102,241,.16);color:#c4b5fd;border:1px solid rgba(99,102,241,.3);}

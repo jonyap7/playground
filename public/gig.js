@@ -129,6 +129,22 @@ const EXTRA2 = {
   bn:{ shareWA:"WhatsApp এ শেয়ার", share:"শেয়ার", install:"📲 অ্যাপ ইনস্টল", installed:"অ্যাপ ইনস্টল হয়েছে!", shareText:"WhatsBiz GIG-এ নিয়োগ দিচ্ছে" },
 };
 for(const l in T) Object.assign(T[l], EXTRA2[l]||{});
+// search string
+const EXTRA3 = {
+  en:{searchPh:"Search jobs…",category:"Category"}, ms:{searchPh:"Cari kerja…",category:"Kategori"},
+  zh:{searchPh:"搜索工作…",category:"类别"}, bn:{searchPh:"কাজ খুঁজুন…",category:"বিভাগ"} };
+for(const l in T) Object.assign(T[l], EXTRA3[l]||{});
+// ============ Job categories ============
+const CATS = { event:"🎪", promoter:"📣", waiter:"🍽️", retail:"🛍️", warehouse:"📦", roadshow:"🚚", kitchen:"👨‍🍳", cleaning:"🧹", emcee:"🎤", photographer:"📸", general:"🧰" };
+const CAT_IDS = Object.keys(CATS);
+const CATLAB = {
+  en:{event:"Event Crew",promoter:"Promoter",waiter:"Waiter",retail:"Retail",warehouse:"Warehouse",roadshow:"Roadshow",kitchen:"Kitchen",cleaning:"Cleaning",emcee:"Emcee",photographer:"Photographer",general:"General"},
+  ms:{event:"Kru Acara",promoter:"Promoter",waiter:"Pelayan",retail:"Runcit",warehouse:"Gudang",roadshow:"Roadshow",kitchen:"Dapur",cleaning:"Pencucian",emcee:"Pengacara",photographer:"Jurugambar",general:"Am"},
+  zh:{event:"活动人员",promoter:"促销员",waiter:"服务员",retail:"零售",warehouse:"仓库",roadshow:"路演",kitchen:"厨房",cleaning:"清洁",emcee:"司仪",photographer:"摄影师",general:"一般"},
+  bn:{event:"ইভেন্ট ক্রু",promoter:"প্রোমোটার",waiter:"ওয়েটার",retail:"রিটেইল",warehouse:"গুদাম",roadshow:"রোডশো",kitchen:"রান্নাঘর",cleaning:"পরিষ্কার",emcee:"উপস্থাপক",photographer:"ফটোগ্রাফার",general:"সাধারণ"},
+};
+const catLabel = id => (CATLAB[lang] && CATLAB[lang][id]) || CATLAB.en[id] || id;
+const catName = id => (CATS[id]?CATS[id]+" ":"") + catLabel(id);
 let lang = localStorage.getItem("wg_lang") || "en";
 const t = k => (T[lang][k] ?? T.en[k] ?? k);
 const PLAN_PRICE = { free:"RM0", pro:"RM29", premium:"RM99" };
@@ -160,7 +176,7 @@ const DB = {
   msgs: JSON.parse(localStorage.getItem("wg_msgs")||"null"),
   notifs: JSON.parse(localStorage.getItem("wg_notifs")||"null"),
 };
-const S = { role:"worker", workerId:"me", employerId:"e1", tab:"jobs", dist:"all", urgent:false, modal:null, toast:null };
+const S = { role:"worker", workerId:"me", employerId:"e1", tab:"jobs", dist:"all", urgent:false, cat:"all", q:"", modal:null, toast:null };
 const uid = () => Math.random().toString(36).slice(2,9);
 function save(){ for(const k of ["workers","employers","jobs","apps","msgs","notifs"]) localStorage.setItem("wg_"+k, JSON.stringify(DB[k])); }
 const FREE_LIMIT = 5;
@@ -176,10 +192,10 @@ function seed(){
   ];
   DB.employers = [ {id:"e1", biz:"StageWorks Events", verified:true, plan:"premium", ratingSum:23, ratingCount:5} ];
   DB.jobs = [
-    {id:"j1", empId:"e1", title:"Event Crew",      town:"georgetown",   date:"Sat 20 Aug", time:"8am – 6pm",  pay:"RM120/day",  needed:15, urg:"today",    featured:true},
-    {id:"j2", empId:"e1", title:"Roadshow Promoter",town:"bayanlepas",  date:"Sun 21 Aug", time:"10am – 8pm", pay:"RM100/day",  needed:5,  urg:"tomorrow"},
-    {id:"j3", empId:"e1", title:"Wedding Waiter",   town:"bukitmertajam",date:"Sat 27 Aug", time:"5pm – 11pm", pay:"RM90/night", needed:8,  urg:"normal"},
-    {id:"j4", empId:"e1", title:"Warehouse Helper", town:"butterworth", date:"Mon 22 Aug", time:"9am – 5pm",  pay:"RM15/hour",  needed:3,  urg:"normal"},
+    {id:"j1", empId:"e1", title:"Event Crew",      cat:"event",     town:"georgetown",   date:"Sat 20 Aug", time:"8am – 6pm",  pay:"RM120/day",  needed:15, urg:"today",    featured:true},
+    {id:"j2", empId:"e1", title:"Roadshow Promoter",cat:"promoter", town:"bayanlepas",  date:"Sun 21 Aug", time:"10am – 8pm", pay:"RM100/day",  needed:5,  urg:"tomorrow"},
+    {id:"j3", empId:"e1", title:"Wedding Waiter",   cat:"waiter",    town:"bukitmertajam",date:"Sat 27 Aug", time:"5pm – 11pm", pay:"RM90/night", needed:8,  urg:"normal"},
+    {id:"j4", empId:"e1", title:"Warehouse Helper", cat:"warehouse", town:"butterworth", date:"Mon 22 Aug", time:"9am – 5pm",  pay:"RM15/hour",  needed:3,  urg:"normal"},
   ];
   DB.apps = [
     {id:uid(), jobId:"j1", workerId:"w2", friendId:null, status:"applied"},
@@ -264,6 +280,7 @@ function jobCard(job){
     <div class="emp">🏢 ${esc(E(job.empId).biz)} ${E(job.empId).verified?`<span class="verified">✔ ${t("verified")}</span>`:""}</div>
     <div class="jt"><div class="name">${urgBadge(job)} ${esc(job.title)}</div><div class="pay">${esc(job.pay)}</div></div>
     <div class="meta">
+      <span class="pill cat">${catName(job.cat||"general")}</span>
       <span>📅 ${esc(job.date)}</span><span>🕒 ${esc(job.time)}</span>
       <span>📍 ${esc(townName(job.town))} · ${distLabel(job)}</span>
     </div>
@@ -275,9 +292,12 @@ function jobCard(job){
   </div>`;
 }
 function workerJobs(){
+  const q=S.q.trim().toLowerCase();
   let jobs=DB.jobs.map(j=>({j,d:distanceTo(j)}));
   if(S.dist!=="all") jobs=jobs.filter(x=>x.d<=Number(S.dist));
   if(S.urgent) jobs=jobs.filter(x=>x.j.urg!=="normal");
+  if(S.cat!=="all") jobs=jobs.filter(x=>(x.j.cat||"general")===S.cat);
+  if(q) jobs=jobs.filter(x=>(x.j.title+" "+catLabel(x.j.cat||"general")+" "+townName(x.j.town)+" "+E(x.j.empId).biz).toLowerCase().includes(q));
   const urgRank={today:0,tomorrow:1,normal:2};
   // featured first, then urgent, then priority (paid plans), then nearest
   jobs.sort((a,b)=> (isFeatured(b.j)-isFeatured(a.j))
@@ -286,13 +306,18 @@ function workerJobs(){
     || (a.d-b.d));
   const chips=[["all",t("all")],["2","2"],["5","5"],["10","10"]];
   const gpsOn=!!me().coords;
+  const search=`<div class="searchwrap"><span>🔎</span><input id="jobSearch" class="search" placeholder="${t("searchPh")}" value="${esc(S.q)}" autocomplete="off" /></div>`;
+  const catRow=`<div class="filters cats">
+    <button data-act="cat" data-v="all" class="${S.cat==="all"?"on":""}">${t("all")}</button>
+    ${CAT_IDS.map(id=>`<button data-act="cat" data-v="${id}" class="${S.cat===id?"on":""}">${catName(id)}</button>`).join("")}
+  </div>`;
   const filt=`<div class="filters">
     <button data-act="useGPS" class="${gpsOn?"on":""}">${t("useGPS")}</button>
     <button data-act="urg" class="${S.urgent?"on":""}">${t("urgentOnly")}</button>
     ${chips.map(([v,lab])=>`<button data-act="dist" data-v="${v}" class="${S.dist===v?"on":""}">${v==="all"?t("all"):t("within")+" "+lab+"km"}</button>`).join("")}
   </div>`;
   const body = jobs.length? jobs.map(x=>jobCard(x.j)).join("") : `<div class="empty">${t("noJobs")}</div>`;
-  return filt+body;
+  return search+catRow+filt+body;
 }
 
 // ---- Worker: my applications ----
@@ -367,6 +392,7 @@ function employerPost(){
     : `<div class="muted xs" style="margin-top:10px">🔒 ${t("featureLocked")} <a data-act="tab" data-v="biz" style="color:var(--brand2);cursor:pointer">${t("choosePlan")}</a></div>`;
   return `<div class="card"><h2>${t("postTitle")}</h2>${usage}
     <label>${t("fTitle")}</label><input id="p_title" placeholder="Event Crew" />
+    <label>${t("category")}</label><select id="p_cat">${CAT_IDS.map(id=>`<option value="${id}">${catName(id)}</option>`).join("")}</select>
     <label>${t("fLoc")}</label><select id="p_town">${towns}</select>
     <div class="row">
       <div><label>${t("fDate")}</label><input id="p_date" placeholder="20 Aug" /></div>
@@ -552,6 +578,8 @@ function render(){
   }
   const app=document.getElementById("app");
   app.innerHTML=html;
+  // keep focus in the search box while typing
+  if(S._sfocus){ const js=document.getElementById("jobSearch"); if(js){ js.focus(); const v=js.value; js.setSelectionRange(v.length,v.length); } S._sfocus=false; }
   // modal
   let ov=document.getElementById("ovroot"); if(ov) ov.remove();
   if(S.modal){
@@ -577,6 +605,7 @@ document.addEventListener("click", e=>{
     case "tab": S.tab=el.dataset.v; render(); break;
     case "dist": S.dist=el.dataset.v; render(); break;
     case "urg": S.urgent=!S.urgent; render(); break;
+    case "cat": S.cat=el.dataset.v; render(); break;
     case "openApply": S.modal={type:"apply",jobId:id}; render(); break;
     case "closeOv": S.modal=null; render(); break;
     case "openNotifs": myNotifs().forEach(n=>n.read=true); save(); S.modal={type:"notifs"}; render(); break;
@@ -618,6 +647,9 @@ document.addEventListener("change", e=>{
   if(e.target.id==="lang"){ lang=e.target.value; localStorage.setItem("wg_lang",lang); render(); }
   if(e.target.dataset.act==="actAs"){ S.workerId=e.target.value; render(); }
 });
+document.addEventListener("input", e=>{
+  if(e.target.id==="jobSearch"){ S.q=e.target.value; S._sfocus=true; render(); }
+});
 document.addEventListener("submit", e=>{
   const f=e.target.closest("[data-act='sendForm']"); if(!f) return;
   e.preventDefault();
@@ -647,7 +679,7 @@ function publish(){
   const title=v("p_title"); if(!title){ alert("Job title?"); return; }
   const featEl=document.getElementById("p_feat");
   const urg=document.getElementById("p_urg").value;
-  const job={ id:uid(), empId:S.employerId, title,
+  const job={ id:uid(), empId:S.employerId, title, cat:document.getElementById("p_cat").value,
     town:document.getElementById("p_town").value, date:v("p_date")||"-", time:v("p_time")||"-",
     pay:v("p_pay")||"-", needed:Math.max(1,Number(v("p_needed"))||1), urg,
     featured: isPremium(e) && featEl && featEl.checked };

@@ -7,8 +7,8 @@ is speed:
 
 > Employer posts a job in 30 seconds. Worker finds a job in 30 seconds.
 
-This is a **Next.js** app (so it deploys to Vercel out of the box). The whole
-WhatsBiz GIG experience is a self-contained mobile-first UI.
+This is a **Next.js 16 / React 19** app (so it deploys to Vercel out of the
+box). The whole WhatsBiz GIG experience is a self-contained mobile-first UI.
 
 ## Run locally
 
@@ -78,6 +78,9 @@ to iterate on; it can be ported to React components incrementally as it grows.
 - **Installable PWA** — manifest + icons + service worker, so it can be added to
   the home screen and works offline. An in-app **Install** button appears when
   the browser offers it.
+- **Categories & search** — jobs are tagged by gig type (Event Crew, Promoter,
+  Waiter, Retail, Warehouse, Roadshow, Kitchen, Cleaning, Emcee, Photographer…)
+  with icons, a quick category filter row, and a keyword search box.
 - **Multilingual** — full UI in English, Bahasa, 中文 and বাংলা.
 
 ## Monetization (built into the prototype)
