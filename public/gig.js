@@ -131,8 +131,10 @@ const EXTRA2 = {
 for(const l in T) Object.assign(T[l], EXTRA2[l]||{});
 // search string
 const EXTRA3 = {
-  en:{searchPh:"Search jobs…",category:"Category"}, ms:{searchPh:"Cari kerja…",category:"Kategori"},
-  zh:{searchPh:"搜索工作…",category:"类别"}, bn:{searchPh:"কাজ খুঁজুন…",category:"বিভাগ"} };
+  en:{searchPh:"Search jobs…",category:"Category",list:"List",map:"Map",saved:"🔖 Saved",noSaved:"No saved jobs yet. Tap 🤍 on a job to save it.",room:"Sync room",cloudOn:"Cloud sync on",cloudOff:"Local only",fAll:"All"},
+  ms:{searchPh:"Cari kerja…",category:"Kategori",list:"Senarai",map:"Peta",saved:"🔖 Disimpan",noSaved:"Belum ada kerja disimpan. Tekan 🤍 untuk simpan.",room:"Bilik segerak",cloudOn:"Segerak awan aktif",cloudOff:"Setempat sahaja",fAll:"Semua"},
+  zh:{searchPh:"搜索工作…",category:"类别",list:"列表",map:"地图",saved:"🔖 收藏",noSaved:"还没有收藏。点 🤍 收藏工作。",room:"同步房间",cloudOn:"云同步已开",cloudOff:"仅本地",fAll:"全部"},
+  bn:{searchPh:"কাজ খুঁজুন…",category:"বিভাগ",list:"তালিকা",map:"মানচিত্র",saved:"🔖 সংরক্ষিত",noSaved:"সংরক্ষিত কাজ নেই। 🤍 চাপুন।",room:"সিংক রুম",cloudOn:"ক্লাউড সিংক চালু",cloudOff:"শুধু লোকাল",fAll:"সব"} };
 for(const l in T) Object.assign(T[l], EXTRA3[l]||{});
 // ============ Job categories ============
 const CATS = { event:"🎪", promoter:"📣", waiter:"🍽️", retail:"🛍️", warehouse:"📦", roadshow:"🚚", kitchen:"👨‍🍳", cleaning:"🧹", emcee:"🎤", photographer:"📸", general:"🧰" };
@@ -176,15 +178,17 @@ const DB = {
   msgs: JSON.parse(localStorage.getItem("wg_msgs")||"null"),
   notifs: JSON.parse(localStorage.getItem("wg_notifs")||"null"),
 };
-const S = { role:"worker", workerId:"me", employerId:"e1", tab:"jobs", dist:"all", urgent:false, cat:"all", q:"", modal:null, toast:null };
+const S = { role:"worker", workerId:"me", employerId:"e1", tab:"jobs", dist:"all", urgent:false, cat:"all", q:"", jobsView:"list", savedOnly:false, appFilter:"all", modal:null, toast:null };
 const uid = () => Math.random().toString(36).slice(2,9);
-function save(){ for(const k of ["workers","employers","jobs","apps","msgs","notifs"]) localStorage.setItem("wg_"+k, JSON.stringify(DB[k])); }
+let cloudPush=null, cloudStatus={on:false,room:""};   // set up by initCloud() when configured
+function save(){ for(const k of ["workers","employers","jobs","apps","msgs","notifs"]) localStorage.setItem("wg_"+k, JSON.stringify(DB[k]));
+  if(cloudPush) cloudPush(); }
 const FREE_LIMIT = 5;
 const PLANS = ["free","pro","premium"];
 
 function seed(){
   DB.workers = [
-    {id:"me",  name:"You",      age:24, photo:"🧑", langs:["English","Malay"],   town:"georgetown",   completed:5,  noshow:0},
+    {id:"me",  name:"You",      age:24, photo:"🧑", langs:["English","Malay"],   town:"georgetown",   completed:5,  noshow:0, saved:[]},
     {id:"w2",  name:"Rahman",   age:28, photo:"👨", langs:["Bengali","Malay"],   town:"gelugor",      completed:42, noshow:1},
     {id:"w3",  name:"Mei Ling", age:22, photo:"👩", langs:["Chinese","English"], town:"georgetown",   completed:18, noshow:0},
     {id:"w4",  name:"Arjun",    age:25, photo:"🧔", langs:["Tamil","English"],   town:"butterworth",  completed:7,  noshow:3},
@@ -201,6 +205,8 @@ function seed(){
     {id:uid(), jobId:"j1", workerId:"w2", friendId:null, status:"applied"},
     {id:uid(), jobId:"j1", workerId:"w3", friendId:"w5", status:"applied"},
     {id:uid(), jobId:"j1", workerId:"w4", friendId:null, status:"accepted"},
+    {id:uid(), jobId:"j2", workerId:"me", friendId:null, status:"applied"},
+    {id:uid(), jobId:"j4", workerId:"me", friendId:null, status:"completed"},
   ];
   DB.msgs = [ {id:uid(), jobId:"j1", workerId:"w4", from:"employer", text:"Hi, please come to the main gate at 7:45am.", ts:Date.now()-3600000} ];
   DB.notifs = [
@@ -222,6 +228,8 @@ function relClass(s){ return s==null?"":(s>=90?"g":s>=70?"m":"b"); }
 function acceptedFill(jobId){ return DB.apps.filter(a=>a.jobId===jobId&&(a.status==="accepted"||a.status==="completed"))
     .reduce((n,a)=>n+1+(a.friendId?1:0),0); }
 function spotsLeft(job){ return Math.max(0, job.needed - acceptedFill(job.id)); }
+function savedSet(){ const w=me(); if(!w.saved) w.saved=[]; return w.saved; }
+const isSaved = jobId => savedSet().includes(jobId);
 function appsForJob(id){ return DB.apps.filter(a=>a.jobId===id); }
 function myApp(jobId){ return DB.apps.find(a=>a.jobId===jobId && (a.workerId===S.workerId||a.friendId===S.workerId)); }
 function empJobs(eid){ return DB.jobs.filter(j=>j.empId===eid); }
@@ -277,7 +285,9 @@ function jobCard(job){
   const feat = isFeatured(job);
   return `<div class="card job${feat?" feat":""}">
     ${feat?`<div class="featbar">✨ ${t("featured")}</div>`:""}
-    <div class="emp">🏢 ${esc(E(job.empId).biz)} ${E(job.empId).verified?`<span class="verified">✔ ${t("verified")}</span>`:""}</div>
+    <div class="emp">🏢 ${esc(E(job.empId).biz)} ${E(job.empId).verified?`<span class="verified">✔ ${t("verified")}</span>`:""}
+      <button class="bm ${isSaved(job.id)?"on":""}" data-act="save" data-id="${job.id}" aria-label="save">${isSaved(job.id)?"🔖":"🤍"}</button>
+    </div>
     <div class="jt"><div class="name">${urgBadge(job)} ${esc(job.title)}</div><div class="pay">${esc(job.pay)}</div></div>
     <div class="meta">
       <span class="pill cat">${catName(job.cat||"general")}</span>
@@ -291,21 +301,29 @@ function jobCard(job){
     </div>
   </div>`;
 }
-function workerJobs(){
+function filteredJobs(){
   const q=S.q.trim().toLowerCase();
   let jobs=DB.jobs.map(j=>({j,d:distanceTo(j)}));
   if(S.dist!=="all") jobs=jobs.filter(x=>x.d<=Number(S.dist));
   if(S.urgent) jobs=jobs.filter(x=>x.j.urg!=="normal");
+  if(S.savedOnly) jobs=jobs.filter(x=>isSaved(x.j.id));
   if(S.cat!=="all") jobs=jobs.filter(x=>(x.j.cat||"general")===S.cat);
   if(q) jobs=jobs.filter(x=>(x.j.title+" "+catLabel(x.j.cat||"general")+" "+townName(x.j.town)+" "+E(x.j.empId).biz).toLowerCase().includes(q));
   const urgRank={today:0,tomorrow:1,normal:2};
-  // featured first, then urgent, then priority (paid plans), then nearest
   jobs.sort((a,b)=> (isFeatured(b.j)-isFeatured(a.j))
     || (urgRank[a.j.urg]-urgRank[b.j.urg])
     || (planRank(E(a.j.empId))-planRank(E(b.j.empId)))
     || (a.d-b.d));
+  return jobs;
+}
+function workerJobs(){
+  const jobs=filteredJobs();
   const chips=[["all",t("all")],["2","2"],["5","5"],["10","10"]];
   const gpsOn=!!me().coords;
+  const viewToggle=`<div class="seg">
+    <button data-act="jobsView" data-v="list" class="${S.jobsView==="list"?"on":""}">📋 ${t("list")}</button>
+    <button data-act="jobsView" data-v="map" class="${S.jobsView==="map"?"on":""}">🗺️ ${t("map")}</button>
+  </div>`;
   const search=`<div class="searchwrap"><span>🔎</span><input id="jobSearch" class="search" placeholder="${t("searchPh")}" value="${esc(S.q)}" autocomplete="off" /></div>`;
   const catRow=`<div class="filters cats">
     <button data-act="cat" data-v="all" class="${S.cat==="all"?"on":""}">${t("all")}</button>
@@ -313,19 +331,48 @@ function workerJobs(){
   </div>`;
   const filt=`<div class="filters">
     <button data-act="useGPS" class="${gpsOn?"on":""}">${t("useGPS")}</button>
+    <button data-act="savedOnly" class="${S.savedOnly?"on":""}">${t("saved")}</button>
     <button data-act="urg" class="${S.urgent?"on":""}">${t("urgentOnly")}</button>
     ${chips.map(([v,lab])=>`<button data-act="dist" data-v="${v}" class="${S.dist===v?"on":""}">${v==="all"?t("all"):t("within")+" "+lab+"km"}</button>`).join("")}
   </div>`;
-  const body = jobs.length? jobs.map(x=>jobCard(x.j)).join("") : `<div class="empty">${t("noJobs")}</div>`;
-  return search+catRow+filt+body;
+  let body;
+  if(S.jobsView==="map") body=workerMap(jobs);
+  else body = jobs.length? jobs.map(x=>jobCard(x.j)).join("")
+    : `<div class="empty">${S.savedOnly?t("noSaved"):t("noJobs")}</div>`;
+  return viewToggle+search+catRow+filt+body;
+}
+// ---- Worker: map view (no external tiles — relative pins + distance rings) ----
+function workerMap(jobs){
+  const w=me(), o=w.coords || TOWNS[w.town]?.ll || [5.41,100.33];
+  const C=160, maxKm=12, scale=148/maxKm, cosL=Math.cos(o[0]*Math.PI/180);
+  const rings=[2,5,10].map(km=>`<circle cx="${C}" cy="${C}" r="${km*scale}" class="ring"/><text x="${C}" y="${C-km*scale+12}" class="ringlbl">${km}km</text>`).join("");
+  const pins=jobs.map(({j})=>{
+    const jll=TOWNS[j.town]?.ll||o;
+    let kx=(jll[1]-o[1])*111.32*cosL, ky=(jll[0]-o[0])*110.57;
+    let km=Math.hypot(kx,ky); if(km>maxKm){ const f=maxKm/km; kx*=f; ky*=f; }
+    const px=C+kx*scale, py=C-ky*scale;
+    return `<g class="pin" data-act="openApply" data-id="${j.id}" transform="translate(${px.toFixed(1)},${py.toFixed(1)})">
+      <circle r="15" class="pindot ${isFeatured(j)?"feat":j.urg!=="normal"?"urg":""}"/>
+      <text class="pinemo" y="5" text-anchor="middle">${CATS[j.cat||"general"]||"🧰"}</text>
+      <text class="pinlbl" y="30" text-anchor="middle">${esc(j.pay)}</text></g>`;
+  }).join("");
+  return `<div class="card mapcard"><svg viewBox="0 0 320 320" class="map">
+    ${rings}
+    <g transform="translate(${C},${C})"><circle r="9" class="mehere"/><text y="-14" text-anchor="middle" class="melbl">📍 ${esc(me().name)}</text></g>
+    ${pins}
+  </svg>${jobs.length?"":`<div class="empty" style="margin-top:10px">${S.savedOnly?t("noSaved"):t("noJobs")}</div>`}</div>`;
 }
 
 // ---- Worker: my applications ----
 function workerApps(){
-  const mine=DB.apps.filter(a=>a.workerId===S.workerId||a.friendId===S.workerId);
-  if(!mine.length) return `<div class="empty">${t("noApps")}</div>`;
+  const all=DB.apps.filter(a=>a.workerId===S.workerId||a.friendId===S.workerId);
+  if(!all.length) return `<div class="empty">${t("noApps")}</div>`;
+  const filters=[["all",t("fAll")],["applied",t("applied")],["accepted",t("accepted")],["completed",t("completed")]];
+  const bar=`<div class="filters">${filters.map(([v,lab])=>`<button data-act="appFilter" data-v="${v}" class="${S.appFilter===v?"on":""}">${lab}</button>`).join("")}</div>`;
+  const mine = S.appFilter==="all"? all : all.filter(a=>a.status===S.appFilter);
   const statusPill={applied:"gray",accepted:"green",declined:"red",completed:"blue",noshow:"red"};
-  return mine.map(a=>{
+  if(!mine.length) return bar+`<div class="empty">${t("noApps")}</div>`;
+  return bar+mine.map(a=>{
     const job=J(a.jobId); if(!job) return "";
     const buddy=a.friendId? ` <span class="pill blue">+1 ${t("friend")}</span>`:"";
     let rate="";
@@ -369,8 +416,11 @@ function workerProfile(){
       <button class="ghost" data-act="loadDemo">${t("loadDemo")}</button>
       <button class="ghost" data-act="clearAll">${t("clearAll")}</button>
     </div>
+    ${cloudLine()}
   </div>`;
 }
+const cloudLine = () => `<div class="muted xs" style="text-align:center;margin-top:6px">`+
+  (cloudStatus.on ? `☁️ ${t("cloudOn")} · ${t("room")}: ${esc(cloudStatus.room)}` : `📴 ${t("cloudOff")}`)+`</div>`;
 
 // ---- Employer: post ----
 function employerPost(){
@@ -471,7 +521,7 @@ function employerBiz(){
   <div class="card"><div class="row">
     <button class="ghost" data-act="loadDemo">${t("loadDemo")}</button>
     <button class="ghost" data-act="clearAll">${t("clearAll")}</button>
-  </div></div>`;
+  </div>${cloudLine()}</div>`;
 }
 function plansCard(current){
   const tiers=[
@@ -606,6 +656,10 @@ document.addEventListener("click", e=>{
     case "dist": S.dist=el.dataset.v; render(); break;
     case "urg": S.urgent=!S.urgent; render(); break;
     case "cat": S.cat=el.dataset.v; render(); break;
+    case "jobsView": S.jobsView=el.dataset.v; render(); break;
+    case "savedOnly": S.savedOnly=!S.savedOnly; render(); break;
+    case "appFilter": S.appFilter=el.dataset.v; render(); break;
+    case "save": { const set=savedSet(); const i=set.indexOf(id); if(i<0) set.push(id); else set.splice(i,1); save(); render(); break; }
     case "openApply": S.modal={type:"apply",jobId:id}; render(); break;
     case "closeOv": S.modal=null; render(); break;
     case "openNotifs": myNotifs().forEach(n=>n.read=true); save(); S.modal={type:"notifs"}; render(); break;
@@ -702,5 +756,49 @@ if(typeof window!=="undefined"){
     if(jid && J(jid)){ S.role="worker"; S.tab="jobs"; S.modal={type:"apply",jobId:jid}; }
   }catch(_){}
 }
+
+// ============ Optional cloud sync (Supabase) ============
+// Active only when window.__GIG_SUPA has a url + anon key (set from env in app/page.js).
+// Stores the whole app state as one JSON blob per "room" and live-syncs via realtime,
+// so two phones in the same room see each other. Falls back to localStorage otherwise.
+(function initCloud(){
+  const cfg = (typeof window!=="undefined") && window.__GIG_SUPA;
+  if(!cfg || !cfg.url || !cfg.key) return;            // not configured → local only
+  const ROOM = cfg.room || "demo";
+  const CLIENT = uid();
+  const KEYS = ["workers","employers","jobs","apps","msgs","notifs"];
+  let sb=null, pushTimer=null;
+  cloudStatus = { on:true, room:ROOM };
+  function applyBlob(d){
+    if(!d) return;
+    KEYS.forEach(k=>{ if(d[k]) DB[k]=d[k]; });
+    KEYS.forEach(k=>localStorage.setItem("wg_"+k, JSON.stringify(DB[k])));
+    render();
+  }
+  cloudPush = function(){
+    if(!sb) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(async ()=>{
+      try{
+        const data={ _w:CLIENT, _t:Date.now() };
+        KEYS.forEach(k=>data[k]=DB[k]);
+        await sb.from("gig_rooms").upsert({ id:ROOM, data, updated_at:new Date().toISOString() });
+      }catch(_){}
+    }, 400);
+  };
+  import("https://esm.sh/@supabase/supabase-js@2").then(async ({ createClient })=>{
+    sb = createClient(cfg.url, cfg.key, { auth:{ persistSession:false } });
+    try{
+      const { data } = await sb.from("gig_rooms").select("data").eq("id",ROOM).maybeSingle();
+      if(data && data.data) applyBlob(data.data);
+      else cloudPush();                                // seed the room from local data
+    }catch(_){}
+    sb.channel("gig_"+ROOM)
+      .on("postgres_changes", { event:"*", schema:"public", table:"gig_rooms", filter:"id=eq."+ROOM },
+        payload=>{ const d=payload.new && payload.new.data; if(d && d._w!==CLIENT) applyBlob(d); })
+      .subscribe();
+    render();
+  }).catch(()=>{ cloudStatus={ on:false, room:ROOM }; });
+})();
 
 render();

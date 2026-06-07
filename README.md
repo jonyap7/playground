@@ -81,7 +81,28 @@ to iterate on; it can be ported to React components incrementally as it grows.
 - **Categories & search** — jobs are tagged by gig type (Event Crew, Promoter,
   Waiter, Retail, Warehouse, Roadshow, Kitchen, Cleaning, Emcee, Photographer…)
   with icons, a quick category filter row, and a keyword search box.
+- **Map view** — a List ⇄ Map toggle plots nearby jobs as pins with 2/5/10 km
+  distance rings around you (no API key / tiles needed; works offline). Tap a
+  pin to apply.
+- **Saved jobs & history** — bookmark jobs (🔖) and filter to saved only; filter
+  your applications by status (Waiting / Accepted / Completed).
 - **Multilingual** — full UI in English, Bahasa, 中文 and বাংলা.
+
+## Cloud sync (optional)
+
+By default everything is local to the browser. Add a Supabase project and the
+app live-syncs across devices in the same **room**, so two phones actually see
+each other's jobs, applications and chat.
+
+1. Create a project at supabase.com and run `supabase/schema.sql`.
+2. Set the env vars (see `.env.example`) locally and in Vercel:
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+   `NEXT_PUBLIC_GIG_ROOM`.
+
+When configured, the Profile/Business screen shows **☁️ Cloud sync on**;
+otherwise **📴 Local only**. The Supabase client is loaded from a CDN at
+runtime, so no extra build dependency is added. (The included RLS policies are
+permissive for prototyping — tighten them before a real launch.)
 
 ## Monetization (built into the prototype)
 
