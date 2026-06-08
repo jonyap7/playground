@@ -275,6 +275,16 @@ function shareJob(jobId){
 }
 let deferredInstall=null;  // captured beforeinstallprompt event
 const installBtn = () => deferredInstall ? `<button class="btn" style="margin-bottom:12px" data-act="install">${t("install")}</button>` : "";
+// crisp line icons (stroke = currentColor so active colour applies)
+const _ic = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const ICN = {
+  jobs:    _ic('<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'),
+  apps:    _ic('<path d="M9 4h6v3H9z"/><rect x="5" y="5" width="14" height="16" rx="2"/><path d="M9 12h6M9 16h4"/>'),
+  profile: _ic('<circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/>'),
+  post:    _ic('<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>'),
+  store:   _ic('<path d="M4 10l1-5h14l1 5"/><path d="M5 10v9h14v-9"/><path d="M9 19v-5h6v5"/><path d="M4 10a3 3 0 0 0 6 0 3 3 0 0 0 4 0 3 3 0 0 0 6 0"/>'),
+  bell:    _ic('<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.5 21a2 2 0 0 1-3 0"/>'),
+};
 
 // ============ Components ============
 function urgBadge(job){
@@ -309,7 +319,7 @@ function jobCard(job){
       <span>📅 ${esc(job.date)}</span><span>🕒 ${esc(job.time)}</span>
       <span>📍 ${esc(townName(job.town))} · ${distLabel(job)}</span>
     </div>
-    <div class="spots muted">👥 ${t("needPax")} ${job.needed} ${t("pax")} · <b style="color:var(--brand2)">${left}</b> ${t("spotsLeft")}</div>
+    <div class="spots muted">👥 ${t("needPax")} ${job.needed} ${t("pax")} · <b style="color:var(--brand)">${left}</b> ${t("spotsLeft")}</div>
     <div style="margin-top:12px">${action}</div>
   </div>`;
 }
@@ -491,7 +501,7 @@ function employerPost(){
     : `<div class="muted xs" style="margin-bottom:8px">${t("unlimited")} · ${t("plan"+plan[0].toUpperCase()+plan.slice(1))}</div>`;
   const feature = isPremium(e)
     ? `<label class="check"><input type="checkbox" id="p_feat" /> ${t("featureThis")}</label>`
-    : `<div class="muted xs" style="margin-top:10px">🔒 ${t("featureLocked")} <a data-act="tab" data-v="biz" style="color:var(--brand2);cursor:pointer">${t("choosePlan")}</a></div>`;
+    : `<div class="muted xs" style="margin-top:10px">🔒 ${t("featureLocked")} <a data-act="tab" data-v="biz" style="color:var(--brand);cursor:pointer">${t("choosePlan")}</a></div>`;
   return `<div class="card"><h2>${t("postTitle")}</h2>${usage}
     <label>${t("fTitle")}</label><input id="p_title" placeholder="Event Crew" />
     <label>${t("category")}</label><select id="p_cat">${CAT_IDS.map(id=>`<option value="${id}">${catName(id)}</option>`).join("")}</select>
@@ -545,7 +555,7 @@ function employerJobs(){
       <div class="jt"><div class="name" style="font-size:1.05rem">${urgBadge(job)} ${esc(job.title)}</div><div class="pay" style="font-size:1rem">${esc(job.pay)}</div></div>
       <div class="meta"><span>📅 ${esc(job.date)}</span><span>🕒 ${esc(job.time)}</span><span>📍 ${esc(townName(job.town))}</span></div>
       <div class="sm muted">👥 ${fill}/${job.needed} ${t("spotsFilled")} · ${apps.length} ${t("applicants")}</div>
-      <button class="btn wa full" style="margin-top:10px" data-act="share" data-id="${job.id}">🟢 ${t("shareWA")}</button>
+      <button class="btn wa full" style="margin-top:10px" data-act="share" data-id="${job.id}">${t("shareWA")}</button>
       <div style="margin-top:6px">${list}</div>
     </div>`;
   }).join("");
@@ -678,16 +688,16 @@ function render(){
     if(!bell){ bell=document.createElement("button"); bell.id="bell"; bell.className="bell"; bell.dataset.act="openNotifs";
       hrow.insertBefore(bell, document.getElementById("lang")); }
     const n=unreadCount();
-    bell.innerHTML=`🔔${n?`<span class="bdot">${n>9?"9+":n}</span>`:""}`;
+    bell.innerHTML=`${ICN.bell}${n?`<span class="bdot">${n>9?"9+":n}</span>`:""}`;
   }
   // roles
   document.getElementById("roles").innerHTML=
-    `<button data-act="role" data-v="worker" class="${S.role==="worker"?"on":""}">🔎 ${t("roleWorker")}</button>
-     <button data-act="role" data-v="employer" class="${S.role==="employer"?"on":""}">📢 ${t("roleEmployer")}</button>`;
+    `<button data-act="role" data-v="worker" class="${S.role==="worker"?"on":""}">${t("roleWorker")}</button>
+     <button data-act="role" data-v="employer" class="${S.role==="employer"?"on":""}">${t("roleEmployer")}</button>`;
   // nav
   const tabs = S.role==="worker"
-    ? [["jobs","🔥",t("w_jobs")],["apps","📨",t("w_apps")],["profile","👤",t("w_profile")]]
-    : [["post","➕",t("e_post")],["jobs","📋",t("e_jobs")],["biz","🏢",t("e_biz")]];
+    ? [["jobs",ICN.jobs,t("w_jobs")],["apps",ICN.apps,t("w_apps")],["profile",ICN.profile,t("w_profile")]]
+    : [["post",ICN.post,t("e_post")],["jobs",ICN.apps,t("e_jobs")],["biz",ICN.store,t("e_biz")]];
   if(!tabs.some(x=>x[0]===S.tab)) S.tab=tabs[0][0];
   document.getElementById("nav").innerHTML=tabs.map(([k,ic,lab])=>
     `<button data-act="tab" data-v="${k}" class="${S.tab===k?"on":""}"><span class="ic">${ic}</span>${lab}</button>`).join("");
