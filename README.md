@@ -70,6 +70,10 @@ to iterate on; it can be ported to React components incrementally as it grows.
 - **Reliability over resumes** — `Reliability % = completed / (completed + no-shows)`.
 - **Two-way reputation** — workers rate employers *and* employers rate workers
   (`★ = ratingSum / ratingCount`). The closed loop is the marketplace's trust moat.
+- **Verified workers** — phone-verify flow (enter number → 6-digit code) earns a
+  ✔ Verified badge shown on the worker's profile, applicant card, and Work-Buddy
+  picker. `sendOtp()` is the single seam to wire a real SMS provider (Twilio /
+  Supabase Edge Function); the demo surfaces the code on-screen instead of texting it.
 - **Work Buddy mode** — apply with a friend; a buddy application fills 2 spots.
 - **Urgent jobs** — `⚡ Need staff today / tomorrow` are pinned to the top.
 - **Nearby** — distance filtering (within 2 / 5 / 10 km), with optional **live GPS**

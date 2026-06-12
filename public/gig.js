@@ -151,6 +151,22 @@ const EXTRA5 = {
   bn:{ rateWorker:"এই কর্মীকে রেট দিন", rating:"রেটিং", notiRated:"⭐ আপনি রেটিং পেয়েছেন:", newWorker:"নতুন" },
 };
 for(const l in T) Object.assign(T[l], EXTRA5[l]||{});
+// phone verification (worker trust badge)
+const EXTRA6 = {
+  en:{ verifyTitle:"Verify your phone", verifySub:"Verified workers get hired faster.", phoneLabel:"Phone number",
+    sendCode:"Send code", codeLabel:"Enter the 6-digit code", verifyNow:"Verify", verifiedToast:"Phone verified! ✔",
+    demoCode:"Demo code", badCode:"Wrong code — try again", resend:"Resend code", verifyCta:"Verify phone", badPhone:"Enter a valid phone number" },
+  ms:{ verifyTitle:"Sahkan telefon anda", verifySub:"Pekerja disahkan diupah lebih cepat.", phoneLabel:"Nombor telefon",
+    sendCode:"Hantar kod", codeLabel:"Masukkan kod 6 digit", verifyNow:"Sahkan", verifiedToast:"Telefon disahkan! ✔",
+    demoCode:"Kod demo", badCode:"Kod salah — cuba lagi", resend:"Hantar semula", verifyCta:"Sahkan telefon", badPhone:"Masukkan nombor telefon yang sah" },
+  zh:{ verifyTitle:"验证你的电话", verifySub:"已验证的工人更快被录用。", phoneLabel:"电话号码",
+    sendCode:"发送验证码", codeLabel:"输入6位验证码", verifyNow:"验证", verifiedToast:"电话已验证！✔",
+    demoCode:"演示验证码", badCode:"验证码错误 — 再试一次", resend:"重新发送", verifyCta:"验证电话", badPhone:"请输入有效的电话号码" },
+  bn:{ verifyTitle:"আপনার ফোন যাচাই করুন", verifySub:"যাচাইকৃত কর্মীরা দ্রুত কাজ পান।", phoneLabel:"ফোন নম্বর",
+    sendCode:"কোড পাঠান", codeLabel:"৬-সংখ্যার কোড দিন", verifyNow:"যাচাই", verifiedToast:"ফোন যাচাই হয়েছে! ✔",
+    demoCode:"ডেমো কোড", badCode:"ভুল কোড — আবার চেষ্টা করুন", resend:"আবার পাঠান", verifyCta:"ফোন যাচাই", badPhone:"সঠিক ফোন নম্বর দিন" },
+};
+for(const l in T) Object.assign(T[l], EXTRA6[l]||{});
 const PHOTOS = ["🧑","👨","👩","🧔","👧","👦","🧕","👳","🧑‍🦱","👨‍🦳","👩‍🦰","🧓"];
 const LANGS  = ["English","Malay","Chinese","Tamil","Bengali","Indonesian","Burmese","Nepali"];
 // ============ Job categories ============
@@ -206,8 +222,8 @@ const PLANS = ["free","pro","premium"];
 function seed(){
   DB.workers = [
     {id:"me",  name:"You",      age:24, photo:"🧑", langs:["English","Malay"],   town:"georgetown",   completed:5,  noshow:0, saved:[], ratingSum:23,  ratingCount:5},
-    {id:"w2",  name:"Rahman",   age:28, photo:"👨", langs:["Bengali","Malay"],   town:"gelugor",      completed:42, noshow:1, ratingSum:198, ratingCount:42},
-    {id:"w3",  name:"Mei Ling", age:22, photo:"👩", langs:["Chinese","English"], town:"georgetown",   completed:18, noshow:0, ratingSum:89,  ratingCount:18},
+    {id:"w2",  name:"Rahman",   age:28, photo:"👨", langs:["Bengali","Malay"],   town:"gelugor",      completed:42, noshow:1, ratingSum:198, ratingCount:42, verified:true, phone:"012-345 6789"},
+    {id:"w3",  name:"Mei Ling", age:22, photo:"👩", langs:["Chinese","English"], town:"georgetown",   completed:18, noshow:0, ratingSum:89,  ratingCount:18, verified:true, phone:"016-777 1234"},
     {id:"w4",  name:"Arjun",    age:25, photo:"🧔", langs:["Tamil","English"],   town:"butterworth",  completed:7,  noshow:3, ratingSum:25,  ratingCount:7},
     {id:"w5",  name:"Siti",     age:20, photo:"👧", langs:["Malay"],             town:"bayanlepas",   completed:0,  noshow:0},
   ];
@@ -246,6 +262,7 @@ function relClass(s){ return s==null?"":(s>=90?"g":s>=70?"m":"b"); }
 // employer→worker quality rating (separate from showed-up reliability %)
 function workerRating(w){ return w&&w.ratingCount? (w.ratingSum/w.ratingCount) : null; }
 function wStarChip(w){ const r=workerRating(w); return r==null?"":`<span class="pill gold">★ ${r.toFixed(1)} <span class="xs">(${w.ratingCount})</span></span>`; }
+const verifiedChip = w => (w&&w.verified) ? `<span class="verified">✔ ${t("verified")}</span>` : "";
 function acceptedFill(jobId){ return DB.apps.filter(a=>a.jobId===jobId&&(a.status==="accepted"||a.status==="completed"))
     .reduce((n,a)=>n+1+(a.friendId?1:0),0); }
 function spotsLeft(job){ return Math.max(0, job.needed - acceptedFill(job.id)); }
@@ -472,7 +489,7 @@ function workerProfile(){
   const others=DB.workers.map(x=>`<option value="${x.id}" ${x.id===S.workerId?"selected":""}>${esc(x.name)}</option>`).join("");
   return `${installBtn()}<div class="card" style="text-align:center">
     <div class="avatar" style="width:74px;height:74px;font-size:2.6rem;margin:4px auto 8px">${w.photo}</div>
-    <div style="font-weight:800;font-size:1.2rem">${esc(w.name)}, ${w.age}</div>
+    <div style="font-weight:800;font-size:1.2rem">${esc(w.name)}, ${w.age} ${verifiedChip(w)}</div>
     <div class="muted sm">🗣️ ${w.langs.join(", ")}</div>
     <div class="muted sm">📍 ${townName(w.town)}</div>
     <div style="margin:14px 0">
@@ -482,6 +499,7 @@ function workerProfile(){
     <div class="stat"><span class="muted">⭐ ${t("rating")}</span><b>${workerRating(w)==null?"—":workerRating(w).toFixed(1)+` <span class="muted sm">(${w.ratingCount})</span>`}</b></div>
     <div class="stat"><span class="muted">✅ ${t("completedJobs")}</span><b>${w.completed}</b></div>
     <div class="stat"><span class="muted">⛔ ${t("noshows")}</span><b>${w.noshow}</b></div>
+    ${w.verified?"":`<button class="btn" data-act="verifyPhone" style="margin-top:12px">📱 ${t("verifyCta")}</button>`}
     <button class="btn alt" data-act="editWorker" style="margin-top:12px">✏️ ${t("edit")}</button>
   </div>
   <div class="card">
@@ -550,7 +568,7 @@ function applicantRow(a){
   return `<div class="applicant">
     <div class="avatar">${w.photo}</div>
     <div style="flex:1;min-width:0">
-      <div style="font-weight:700">${esc(w.name)}${friend?` <span class="pill blue">+ ${esc(friend.name)}</span>`:""}</div>
+      <div style="font-weight:700">${esc(w.name)} ${verifiedChip(w)}${friend?` <span class="pill blue">+ ${esc(friend.name)}</span>`:""}</div>
       <div class="xs muted">🗣️ ${w.langs.join(", ")} · ✅ ${w.completed} · ⛔ ${w.noshow}</div>
       ${act}
     </div>
@@ -674,7 +692,28 @@ function modalApply(jobId){
     <button class="btn" data-act="applyAlone" data-id="${jobId}">🙋 ${t("applyAlone")}</button>
     <div class="muted sm" style="margin:16px 0 8px">👥 ${t("chooseFriend")}</div>
     ${friends.length? friends.map(f=>`<button class="btn alt" style="margin-bottom:8px;text-align:left" data-act="applyFriend" data-id="${jobId}" data-f="${f.id}">
-        ${f.photo} ${esc(f.name)} · ${relChip(f).replace(/<span class="rel ([gmb]?)">/,'<span class="rel $1" style="float:right">')}</button>`).join("") : ""}
+        ${f.photo} ${esc(f.name)} ${verifiedChip(f)} · ${relChip(f).replace(/<span class="rel ([gmb]?)">/,'<span class="rel $1" style="float:right">')}</button>`).join("") : ""}
+  </div></div>`;
+}
+// Phone verification sheet — two steps: enter number → enter the 6-digit code.
+function modalVerify(){
+  const m=S.modal;
+  if(m.step==="code"){
+    return `<div class="ov" data-act="closeOv"><div class="sheet" data-act="stop">
+      <div class="grab"></div><h3>📱 ${t("verifyTitle")}</h3>
+      <div class="muted sm" style="margin-bottom:12px">${t("codeLabel")} · <b>${esc(m.phone)}</b></div>
+      <input id="vf_code" inputmode="numeric" maxlength="6" placeholder="••••••" value="${esc(m.entered||"")}" style="letter-spacing:.4em;text-align:center;font-size:1.3rem" />
+      ${m.err?`<div class="sm" style="color:#e11d48;margin-top:8px">${t("badCode")}</div>`:""}
+      <button class="btn" style="margin-top:14px" data-act="doVerify">${t("verifyNow")}</button>
+      <button class="ghost" style="margin-top:8px" data-act="sendCode">${t("resend")}</button>
+    </div></div>`;
+  }
+  return `<div class="ov" data-act="closeOv"><div class="sheet" data-act="stop">
+    <div class="grab"></div><h3>📱 ${t("verifyTitle")}</h3>
+    <div class="muted sm" style="margin-bottom:12px">${t("verifySub")}</div>
+    <label>${t("phoneLabel")}</label>
+    <input id="vf_phone" inputmode="tel" placeholder="012-345 6789" value="${esc(m.phone||"")}" />
+    <button class="btn" style="margin-top:14px" data-act="sendCode">${t("sendCode")}</button>
   </div></div>`;
 }
 function modalChat(jobId, workerId){
@@ -747,9 +786,10 @@ function render(){
       : S.modal.type==="notifs"? modalNotifs()
       : S.modal.type==="editWorker"? modalEditWorker()
       : S.modal.type==="editEmployer"? modalEditEmployer()
+      : S.modal.type==="verify"? modalVerify()
       : modalChat(S.modal.jobId,S.modal.workerId);
     document.body.appendChild(root);
-    const mi=document.getElementById("msgInput"); if(mi) mi.focus();
+    const mi=document.getElementById("msgInput")||document.getElementById("vf_code")||document.getElementById("vf_phone"); if(mi) mi.focus();
     const mb=document.getElementById("msgs"); if(mb) mb.scrollTop=mb.scrollHeight;
   }
   // toast
@@ -773,6 +813,25 @@ document.addEventListener("click", e=>{
     case "save": { const set=savedSet(); const i=set.indexOf(id); if(i<0) set.push(id); else set.splice(i,1); save(); render(); break; }
     case "withdraw": DB.apps=DB.apps.filter(x=>x.id!==id); save(); render(); break;
     case "editWorker": { const w=me(); S.modal={type:"editWorker",draft:{name:w.name,age:w.age,photo:w.photo,town:w.town,langs:[...(w.langs||[])]}}; render(); break; }
+    case "verifyPhone": S.modal={type:"verify",step:"phone",phone:me().phone||""}; render(); break;
+    case "sendCode": {
+      const inp=document.getElementById("vf_phone");
+      const phone=(inp? inp.value : S.modal.phone||"").trim();
+      if((phone.replace(/\D/g,"")).length<7){ toast(t("badPhone")); break; }
+      const code=sendOtp(phone);                          // demo: returns the code; real SMS provider drops in here
+      S.modal={type:"verify",step:"code",phone,code,entered:"",err:false};
+      toast(`${t("demoCode")}: ${code}`);                 // DEMO ONLY — a real build sends this via SMS, never shows it
+      render(); break;
+    }
+    case "doVerify": {
+      const inp=document.getElementById("vf_code");
+      const entered=(inp? inp.value : "").trim();
+      if(entered===S.modal.code){
+        const w=me(); w.phone=S.modal.phone; w.verified=true;
+        save(); S.modal=null; toast(t("verifiedToast"));
+      } else { S.modal.entered=entered; S.modal.err=true; render(); }
+      break;
+    }
     case "editEmployer": { const e=E(S.employerId); S.modal={type:"editEmployer",draft:{biz:e.biz}}; render(); break; }
     case "pickPhoto": syncWorkerDraft(); S.modal.draft.photo=el.dataset.v; render(); break;
     case "toggleLang": { syncWorkerDraft(); const ls=S.modal.draft.langs, v=el.dataset.v, i=ls.indexOf(v); if(i<0) ls.push(v); else ls.splice(i,1); render(); break; }
@@ -857,6 +916,12 @@ function doRateWorker(appId, n){
     if(w){ w.ratingSum=(w.ratingSum||0)+n; w.ratingCount=(w.ratingCount||0)+1;
       notify("worker", wid, `${t("notiRated")} ${job.title} (${"⭐".repeat(n)})`); } });
   save(); render();
+}
+// Generate (and "send") a one-time code. DEMO: returns the code so the UI can show it.
+// To go live, POST {phone} to a Supabase Edge Function / Twilio Verify here and return
+// nothing — the provider sends the SMS and you verify the code server-side instead.
+function sendOtp(phone){
+  return String(Math.floor(100000 + Math.random()*900000));
 }
 function publish(){
   const e=E(S.employerId);
