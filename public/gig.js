@@ -167,6 +167,22 @@ const EXTRA6 = {
     demoCode:"ডেমো কোড", badCode:"ভুল কোড — আবার চেষ্টা করুন", resend:"আবার পাঠান", verifyCta:"ফোন যাচাই", badPhone:"সঠিক ফোন নম্বর দিন" },
 };
 for(const l in T) Object.assign(T[l], EXTRA6[l]||{});
+// payments: pay-on-completion with a platform take-rate
+const EXTRA7 = {
+  en:{ payTitle:"Confirm payment", workerGets:"Worker gets", platformFee:"Platform fee", youPay:"You pay",
+    confirmPay:"Confirm & pay", paidToast:"Paid! Marked as showed up.", earned:"Earned", paidOut:"Paid out",
+    payNote:"Funds are released to the worker on completion." },
+  ms:{ payTitle:"Sahkan bayaran", workerGets:"Pekerja dapat", platformFee:"Yuran platform", youPay:"Anda bayar",
+    confirmPay:"Sahkan & bayar", paidToast:"Dibayar! Ditanda hadir.", earned:"Pendapatan", paidOut:"Dibayar",
+    payNote:"Dana dilepaskan kepada pekerja setelah selesai." },
+  zh:{ payTitle:"确认付款", workerGets:"工人获得", platformFee:"平台费", youPay:"你支付",
+    confirmPay:"确认并付款", paidToast:"已付款！标记为出席。", earned:"收入", paidOut:"已支付",
+    payNote:"完成后将款项发放给工人。" },
+  bn:{ payTitle:"পেমেন্ট নিশ্চিত করুন", workerGets:"কর্মী পাবেন", platformFee:"প্ল্যাটফর্ম ফি", youPay:"আপনি দেবেন",
+    confirmPay:"নিশ্চিত করে পরিশোধ", paidToast:"পরিশোধ হয়েছে! উপস্থিত চিহ্নিত।", earned:"আয়", paidOut:"পরিশোধিত",
+    payNote:"সম্পন্ন হলে কর্মীকে অর্থ দেওয়া হয়।" },
+};
+for(const l in T) Object.assign(T[l], EXTRA7[l]||{});
 const PHOTOS = ["🧑","👨","👩","🧔","👧","👦","🧕","👳","🧑‍🦱","👨‍🦳","👩‍🦰","🧓"];
 const LANGS  = ["English","Malay","Chinese","Tamil","Bengali","Indonesian","Burmese","Nepali"];
 // ============ Job categories ============
@@ -218,16 +234,26 @@ function save(){ for(const k of ["workers","employers","jobs","apps","msgs","not
   if(cloudPush) cloudPush(); }
 const FREE_LIMIT = 5;
 const PLANS = ["free","pro","premium"];
+const PLATFORM_FEE = 0.10;                 // 10% take-rate on completed gigs
+// pull the RM amount out of a free-text pay string ("RM120/day" -> 120)
+function parsePay(s){ const m=String(s||"").replace(/,/g,"").match(/(\d+(?:\.\d+)?)/); return m? Math.round(parseFloat(m[1])) : 0; }
+const rm = n => "RM"+Number(n||0).toLocaleString();
+// breakdown for one completed application (a buddy app pays 2 people)
+function payBreakdown(a){ const job=J(a.jobId); const per=parsePay(job.pay); const pax=1+(a.friendId?1:0);
+  const gross=per*pax, fee=Math.round(gross*PLATFORM_FEE); return { per, pax, gross, fee, total:gross+fee }; }
+// DEMO charge — instantly succeeds. To go live, create a payment intent (Stripe /
+// local gateway) and only record the payout once capture is confirmed server-side.
+function chargeEmployer(amount){ return { ok:true, ref:"demo_"+uid() }; }
 
 function seed(){
   DB.workers = [
-    {id:"me",  name:"You",      age:24, photo:"🧑", langs:["English","Malay"],   town:"georgetown",   completed:5,  noshow:0, saved:[], ratingSum:23,  ratingCount:5},
-    {id:"w2",  name:"Rahman",   age:28, photo:"👨", langs:["Bengali","Malay"],   town:"gelugor",      completed:42, noshow:1, ratingSum:198, ratingCount:42, verified:true, phone:"012-345 6789"},
-    {id:"w3",  name:"Mei Ling", age:22, photo:"👩", langs:["Chinese","English"], town:"georgetown",   completed:18, noshow:0, ratingSum:89,  ratingCount:18, verified:true, phone:"016-777 1234"},
-    {id:"w4",  name:"Arjun",    age:25, photo:"🧔", langs:["Tamil","English"],   town:"butterworth",  completed:7,  noshow:3, ratingSum:25,  ratingCount:7},
-    {id:"w5",  name:"Siti",     age:20, photo:"👧", langs:["Malay"],             town:"bayanlepas",   completed:0,  noshow:0},
+    {id:"me",  name:"You",      age:24, photo:"🧑", langs:["English","Malay"],   town:"georgetown",   completed:5,  noshow:0, saved:[], ratingSum:23,  ratingCount:5,  earned:540},
+    {id:"w2",  name:"Rahman",   age:28, photo:"👨", langs:["Bengali","Malay"],   town:"gelugor",      completed:42, noshow:1, ratingSum:198, ratingCount:42, verified:true, phone:"012-345 6789", earned:3960},
+    {id:"w3",  name:"Mei Ling", age:22, photo:"👩", langs:["Chinese","English"], town:"georgetown",   completed:18, noshow:0, ratingSum:89,  ratingCount:18, verified:true, phone:"016-777 1234", earned:1620},
+    {id:"w4",  name:"Arjun",    age:25, photo:"🧔", langs:["Tamil","English"],   town:"butterworth",  completed:7,  noshow:3, ratingSum:25,  ratingCount:7,  earned:610},
+    {id:"w5",  name:"Siti",     age:20, photo:"👧", langs:["Malay"],             town:"bayanlepas",   completed:0,  noshow:0,  earned:0},
   ];
-  DB.employers = [ {id:"e1", biz:"StageWorks Events", verified:true, plan:"premium", ratingSum:23, ratingCount:5} ];
+  DB.employers = [ {id:"e1", biz:"StageWorks Events", verified:true, plan:"premium", ratingSum:23, ratingCount:5, spent:5400, fees:540} ];
   DB.jobs = [
     {id:"j1", empId:"e1", title:"Event Crew",      cat:"event",     town:"georgetown",   date:"Sat 20 Aug", time:"8am – 6pm",  pay:"RM120/day",  needed:15, urg:"today",    featured:true},
     {id:"j2", empId:"e1", title:"Roadshow Promoter",cat:"promoter", town:"bayanlepas",  date:"Sun 21 Aug", time:"10am – 8pm", pay:"RM100/day",  needed:5,  urg:"tomorrow"},
@@ -498,6 +524,7 @@ function workerProfile(){
     </div>
     <div class="stat"><span class="muted">⭐ ${t("rating")}</span><b>${workerRating(w)==null?"—":workerRating(w).toFixed(1)+` <span class="muted sm">(${w.ratingCount})</span>`}</b></div>
     <div class="stat"><span class="muted">✅ ${t("completedJobs")}</span><b>${w.completed}</b></div>
+    <div class="stat"><span class="muted">💰 ${t("earned")}</span><b>${rm(w.earned)}</b></div>
     <div class="stat"><span class="muted">⛔ ${t("noshows")}</span><b>${w.noshow}</b></div>
     ${w.verified?"":`<button class="btn" data-act="verifyPhone" style="margin-top:12px">📱 ${t("verifyCta")}</button>`}
     <button class="btn alt" data-act="editWorker" style="margin-top:12px">✏️ ${t("edit")}</button>
@@ -616,6 +643,7 @@ function employerBiz(){
     <div style="margin-top:4px"><span class="pill ${plan==="free"?"gray":"gold"}">${plan==="free"?"":"⭐ "}${planLabel[plan]}</span></div>
     <div style="margin:14px 0"><div class="rel g" style="font-size:2rem">⭐ ${avg}</div><div class="muted sm">${t("avgRating")} · ${e.ratingCount} ${t("reviews")}</div></div>
     <div class="stat"><span class="muted">📋 ${t("jobsPosted")}</span><b>${jobs.length}</b></div>
+    <div class="stat"><span class="muted">💰 ${t("paidOut")}</span><b>${rm(e.spent)}</b></div>
     <div class="stat"><span class="muted">✅ ${t("completionRate")}</span><b>${rate==null?"—":rate+"%"}</b></div>
     <button class="btn alt" data-act="editEmployer" style="margin-top:12px">✏️ ${t("editBiz")}</button>
   </div>
@@ -716,6 +744,22 @@ function modalVerify(){
     <button class="btn" style="margin-top:14px" data-act="sendCode">${t("sendCode")}</button>
   </div></div>`;
 }
+// Payment sheet shown when the employer confirms a worker showed up.
+function modalPay(appId){
+  const a=DB.apps.find(x=>x.id===appId); if(!a) return "";
+  const job=J(a.jobId), w=W(a.workerId), friend=a.friendId?W(a.friendId):null;
+  const b=payBreakdown(a);
+  const who = esc(w.name)+(friend?` + ${esc(friend.name)}`:"")+` (${b.pax} ${t("pax")})`;
+  return `<div class="ov" data-act="closeOv"><div class="sheet" data-act="stop">
+    <div class="grab"></div><h3>💳 ${t("payTitle")}</h3>
+    <div class="muted sm" style="margin-bottom:12px">${esc(job.title)} · ${who}</div>
+    <div class="stat"><span class="muted">👤 ${t("workerGets")}</span><b>${rm(b.gross)}</b></div>
+    <div class="stat"><span class="muted">⚙️ ${t("platformFee")} (${Math.round(PLATFORM_FEE*100)}%)</span><b>${rm(b.fee)}</b></div>
+    <div class="stat" style="border-top:1px solid #e5e7eb;margin-top:4px;padding-top:8px"><span style="font-weight:700">${t("youPay")}</span><b style="color:var(--brand)">${rm(b.total)}</b></div>
+    <div class="muted xs" style="margin-top:8px">🔒 ${t("payNote")}</div>
+    <button class="btn" style="margin-top:14px" data-act="confirmPay" data-id="${appId}">${t("confirmPay")} · ${rm(b.total)}</button>
+  </div></div>`;
+}
 function modalChat(jobId, workerId){
   const job=J(jobId), w=W(workerId);
   const thread=DB.msgs.filter(m=>m.jobId===jobId&&m.workerId===workerId).sort((a,b)=>a.ts-b.ts);
@@ -787,6 +831,7 @@ function render(){
       : S.modal.type==="editWorker"? modalEditWorker()
       : S.modal.type==="editEmployer"? modalEditEmployer()
       : S.modal.type==="verify"? modalVerify()
+      : S.modal.type==="pay"? modalPay(S.modal.appId)
       : modalChat(S.modal.jobId,S.modal.workerId);
     document.body.appendChild(root);
     const mi=document.getElementById("msgInput")||document.getElementById("vf_code")||document.getElementById("vf_phone"); if(mi) mi.focus();
@@ -869,13 +914,14 @@ document.addEventListener("click", e=>{
     case "decline": { const a=DB.apps.find(x=>x.id===id); if(a){ const job=J(a.jobId);
         [a.workerId,a.friendId].filter(Boolean).forEach(wid=>notify("worker",wid,`${t("notiDeclined")} ${job.title}`)); }
         setStatus(id,"declined"); break; }
-    case "complete": resolveJob(id,true); break;
+    case "complete": S.modal={type:"pay",appId:id}; render(); break;
+    case "confirmPay": payAndComplete(id); break;
     case "noshow": resolveJob(id,false); break;
     case "rate": { const n=e.target.dataset.n; if(n) doRate(id,Number(n)); break; }
     case "rateWorker": { const n=e.target.dataset.n; if(n) doRateWorker(id,Number(n)); break; }
     case "publish": publish(); break;
     case "loadDemo": if(confirm("Load demo data?")){ seed(); S.modal=null; render(); } break;
-    case "clearAll": if(confirm("Clear everything?")){ DB.workers=[{id:"me",name:"You",age:24,photo:"🧑",langs:["English"],town:"georgetown",completed:0,noshow:0,ratingSum:0,ratingCount:0,saved:[]}]; DB.employers=[{id:"e1",biz:"My Business",verified:false,plan:"free",ratingSum:0,ratingCount:0}]; DB.jobs=[];DB.apps=[];DB.msgs=[];DB.notifs=[]; S.workerId="me"; save(); render(); } break;
+    case "clearAll": if(confirm("Clear everything?")){ DB.workers=[{id:"me",name:"You",age:24,photo:"🧑",langs:["English"],town:"georgetown",completed:0,noshow:0,ratingSum:0,ratingCount:0,saved:[],earned:0}]; DB.employers=[{id:"e1",biz:"My Business",verified:false,plan:"free",ratingSum:0,ratingCount:0,spent:0,fees:0}]; DB.jobs=[];DB.apps=[];DB.msgs=[];DB.notifs=[]; S.workerId="me"; save(); render(); } break;
   }
 });
 document.addEventListener("change", e=>{
@@ -902,6 +948,18 @@ function resolveJob(appId, showed){
   a.status = showed? "completed":"noshow";
   [a.workerId, a.friendId].filter(Boolean).forEach(wid=>{ const w=W(wid); if(w){ if(showed) w.completed++; else w.noshow++; } });
   save(); render();
+}
+// Confirm payment, record the payout + platform fee, then mark the worker complete.
+function payAndComplete(appId){
+  const a=DB.apps.find(x=>x.id===appId); if(!a || a.status==="completed") return;
+  const b=payBreakdown(a);
+  const res=chargeEmployer(b.total);                 // swap in a real gateway here
+  if(!res || !res.ok){ toast("Payment failed"); return; }
+  a.status="completed"; a.paid=b.gross; a.fee=b.fee; a.payRef=res.ref;
+  [a.workerId, a.friendId].filter(Boolean).forEach(wid=>{ const w=W(wid);
+    if(w){ w.completed++; w.earned=(w.earned||0)+b.per; } });
+  const e=E(J(a.jobId).empId); if(e){ e.spent=(e.spent||0)+b.gross; e.fees=(e.fees||0)+b.fee; }
+  save(); S.modal=null; toast(t("paidToast")); render();
 }
 function doRate(appId, n){
   const a=DB.apps.find(x=>x.id===appId); if(!a||a.rated) return;

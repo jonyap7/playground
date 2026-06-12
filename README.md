@@ -74,6 +74,10 @@ to iterate on; it can be ported to React components incrementally as it grows.
   ✔ Verified badge shown on the worker's profile, applicant card, and Work-Buddy
   picker. `sendOtp()` is the single seam to wire a real SMS provider (Twilio /
   Supabase Edge Function); the demo surfaces the code on-screen instead of texting it.
+- **Pay on completion + take-rate** — marking a worker "✓ Showed up" opens a payment
+  sheet (worker payout · 10% `PLATFORM_FEE` · total), then records earnings on the
+  worker and payouts on the employer. `chargeEmployer()` is the single seam for a real
+  gateway (Stripe / local rails) — that completed-gig fee is the core revenue model.
 - **Work Buddy mode** — apply with a friend; a buddy application fills 2 spots.
 - **Urgent jobs** — `⚡ Need staff today / tomorrow` are pinned to the top.
 - **Nearby** — distance filtering (within 2 / 5 / 10 km), with optional **live GPS**
