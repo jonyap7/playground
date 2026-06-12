@@ -143,6 +143,14 @@ const EXTRA4 = {
   zh:{edit:"编辑",save:"保存",photo:"头像",withdraw:"撤回",hometown:"所在地区",editBiz:"编辑商家",profileSaved:"已保存！",bizName2:"商家名称"},
   bn:{edit:"এডিট",save:"সেভ",photo:"ছবি",withdraw:"প্রত্যাহার",hometown:"এলাকা",editBiz:"ব্যবসা এডিট",profileSaved:"সেভ হয়েছে!",bizName2:"ব্যবসার নাম"} };
 for(const l in T) Object.assign(T[l], EXTRA4[l]||{});
+// two-way trust: employer rates the worker after the shift
+const EXTRA5 = {
+  en:{ rateWorker:"Rate this worker", rating:"Rating", notiRated:"⭐ You were rated for", newWorker:"New" },
+  ms:{ rateWorker:"Nilai pekerja ini", rating:"Penilaian", notiRated:"⭐ Anda dinilai untuk", newWorker:"Baru" },
+  zh:{ rateWorker:"评价这位工人", rating:"评分", notiRated:"⭐ 你获得评分：", newWorker:"新" },
+  bn:{ rateWorker:"এই কর্মীকে রেট দিন", rating:"রেটিং", notiRated:"⭐ আপনি রেটিং পেয়েছেন:", newWorker:"নতুন" },
+};
+for(const l in T) Object.assign(T[l], EXTRA5[l]||{});
 const PHOTOS = ["🧑","👨","👩","🧔","👧","👦","🧕","👳","🧑‍🦱","👨‍🦳","👩‍🦰","🧓"];
 const LANGS  = ["English","Malay","Chinese","Tamil","Bengali","Indonesian","Burmese","Nepali"];
 // ============ Job categories ============
@@ -197,10 +205,10 @@ const PLANS = ["free","pro","premium"];
 
 function seed(){
   DB.workers = [
-    {id:"me",  name:"You",      age:24, photo:"🧑", langs:["English","Malay"],   town:"georgetown",   completed:5,  noshow:0, saved:[]},
-    {id:"w2",  name:"Rahman",   age:28, photo:"👨", langs:["Bengali","Malay"],   town:"gelugor",      completed:42, noshow:1},
-    {id:"w3",  name:"Mei Ling", age:22, photo:"👩", langs:["Chinese","English"], town:"georgetown",   completed:18, noshow:0},
-    {id:"w4",  name:"Arjun",    age:25, photo:"🧔", langs:["Tamil","English"],   town:"butterworth",  completed:7,  noshow:3},
+    {id:"me",  name:"You",      age:24, photo:"🧑", langs:["English","Malay"],   town:"georgetown",   completed:5,  noshow:0, saved:[], ratingSum:23,  ratingCount:5},
+    {id:"w2",  name:"Rahman",   age:28, photo:"👨", langs:["Bengali","Malay"],   town:"gelugor",      completed:42, noshow:1, ratingSum:198, ratingCount:42},
+    {id:"w3",  name:"Mei Ling", age:22, photo:"👩", langs:["Chinese","English"], town:"georgetown",   completed:18, noshow:0, ratingSum:89,  ratingCount:18},
+    {id:"w4",  name:"Arjun",    age:25, photo:"🧔", langs:["Tamil","English"],   town:"butterworth",  completed:7,  noshow:3, ratingSum:25,  ratingCount:7},
     {id:"w5",  name:"Siti",     age:20, photo:"👧", langs:["Malay"],             town:"bayanlepas",   completed:0,  noshow:0},
   ];
   DB.employers = [ {id:"e1", biz:"StageWorks Events", verified:true, plan:"premium", ratingSum:23, ratingCount:5} ];
@@ -216,6 +224,7 @@ function seed(){
     {id:uid(), jobId:"j1", workerId:"w4", friendId:null, status:"accepted"},
     {id:uid(), jobId:"j2", workerId:"me", friendId:null, status:"applied"},
     {id:uid(), jobId:"j4", workerId:"me", friendId:null, status:"completed"},
+    {id:uid(), jobId:"j3", workerId:"w2", friendId:null, status:"completed", empRated:5},
   ];
   DB.msgs = [ {id:uid(), jobId:"j1", workerId:"w4", from:"employer", text:"Hi, please come to the main gate at 7:45am.", ts:Date.now()-3600000} ];
   DB.notifs = [
@@ -234,6 +243,9 @@ const J = id => DB.jobs.find(j=>j.id===id);
 const me = () => W(S.workerId);
 function reliability(w){ const tot=w.completed+w.noshow; return tot? Math.round(w.completed/tot*100) : null; }
 function relClass(s){ return s==null?"":(s>=90?"g":s>=70?"m":"b"); }
+// employer→worker quality rating (separate from showed-up reliability %)
+function workerRating(w){ return w&&w.ratingCount? (w.ratingSum/w.ratingCount) : null; }
+function wStarChip(w){ const r=workerRating(w); return r==null?"":`<span class="pill gold">★ ${r.toFixed(1)} <span class="xs">(${w.ratingCount})</span></span>`; }
 function acceptedFill(jobId){ return DB.apps.filter(a=>a.jobId===jobId&&(a.status==="accepted"||a.status==="completed"))
     .reduce((n,a)=>n+1+(a.friendId?1:0),0); }
 function spotsLeft(job){ return Math.max(0, job.needed - acceptedFill(job.id)); }
@@ -467,6 +479,7 @@ function workerProfile(){
       ${s==null?`<span class="pill blue" style="font-size:1rem;padding:8px 16px">✨ ${t("new")}</span>`
         :`<div class="rel ${relClass(s)}" style="font-size:2.2rem">⭐ ${s}%</div><div class="muted sm">${t("reliability")} · ${t("reliable")}</div>`}
     </div>
+    <div class="stat"><span class="muted">⭐ ${t("rating")}</span><b>${workerRating(w)==null?"—":workerRating(w).toFixed(1)+` <span class="muted sm">(${w.ratingCount})</span>`}</b></div>
     <div class="stat"><span class="muted">✅ ${t("completedJobs")}</span><b>${w.completed}</b></div>
     <div class="stat"><span class="muted">⛔ ${t("noshows")}</span><b>${w.noshow}</b></div>
     <button class="btn alt" data-act="editWorker" style="margin-top:12px">✏️ ${t("edit")}</button>
@@ -532,6 +545,7 @@ function applicantRow(a){
   else if(a.status==="accepted") act=`<div class="row" style="gap:6px;margin-top:8px">
       <button class="btn sm amber" style="flex:1" data-act="complete" data-id="${a.id}">${t("complete")}</button>
       <button class="btn sm red" style="flex:1" data-act="noshow" data-id="${a.id}">${t("markNoshow")}</button></div>`;
+  else if(a.status==="completed") act=`<div class="sm muted" style="margin-top:6px">${t("completed")}</div>`+rateWorkerWidget(a);
   else act=`<div class="sm muted" style="margin-top:6px">${t(a.status)}</div>`;
   return `<div class="applicant">
     <div class="avatar">${w.photo}</div>
@@ -540,10 +554,17 @@ function applicantRow(a){
       <div class="xs muted">🗣️ ${w.langs.join(", ")} · ✅ ${w.completed} · ⛔ ${w.noshow}</div>
       ${act}
     </div>
-    <div style="text-align:right">${relChip(w)}
+    <div style="text-align:right">${relChip(w)}${wStarChip(w)?"<br>"+wStarChip(w):""}
       <div><button class="ghost" style="margin-top:6px" data-act="chat" data-id="${a.jobId}" data-w="${a.workerId}">💬</button></div>
     </div>
   </div>`;
+}
+// star widget the employer uses to rate a worker once the shift is done
+function rateWorkerWidget(a){
+  return a.empRated
+    ? `<div class="sm muted" style="margin-top:6px">${t("rated")} ${"⭐".repeat(a.empRated)}</div>`
+    : `<div style="margin-top:8px"><div class="sm muted">${t("rateWorker")}:</div>
+        <div class="stars" data-act="rateWorker" data-id="${a.id}">${[1,2,3,4,5].map(n=>`<span data-n="${n}">☆</span>`).join("")}</div></div>`;
 }
 function employerJobs(){
   const jobs=empJobs(S.employerId);
@@ -792,9 +813,10 @@ document.addEventListener("click", e=>{
     case "complete": resolveJob(id,true); break;
     case "noshow": resolveJob(id,false); break;
     case "rate": { const n=e.target.dataset.n; if(n) doRate(id,Number(n)); break; }
+    case "rateWorker": { const n=e.target.dataset.n; if(n) doRateWorker(id,Number(n)); break; }
     case "publish": publish(); break;
     case "loadDemo": if(confirm("Load demo data?")){ seed(); S.modal=null; render(); } break;
-    case "clearAll": if(confirm("Clear everything?")){ DB.workers=[{id:"me",name:"You",age:24,photo:"🧑",langs:["English"],town:"georgetown",completed:0,noshow:0}]; DB.employers=[{id:"e1",biz:"My Business",verified:false,plan:"free",ratingSum:0,ratingCount:0}]; DB.jobs=[];DB.apps=[];DB.msgs=[];DB.notifs=[]; S.workerId="me"; save(); render(); } break;
+    case "clearAll": if(confirm("Clear everything?")){ DB.workers=[{id:"me",name:"You",age:24,photo:"🧑",langs:["English"],town:"georgetown",completed:0,noshow:0,ratingSum:0,ratingCount:0,saved:[]}]; DB.employers=[{id:"e1",biz:"My Business",verified:false,plan:"free",ratingSum:0,ratingCount:0}]; DB.jobs=[];DB.apps=[];DB.msgs=[];DB.notifs=[]; S.workerId="me"; save(); render(); } break;
   }
 });
 document.addEventListener("change", e=>{
@@ -825,6 +847,15 @@ function resolveJob(appId, showed){
 function doRate(appId, n){
   const a=DB.apps.find(x=>x.id===appId); if(!a||a.rated) return;
   a.rated=n; const job=J(a.jobId); const e=E(job.empId); if(e){ e.ratingSum+=n; e.ratingCount++; }
+  save(); render();
+}
+// employer rates the worker(s) on a completed app — feeds the worker's public ★ score
+function doRateWorker(appId, n){
+  const a=DB.apps.find(x=>x.id===appId); if(!a||a.empRated) return;
+  a.empRated=n; const job=J(a.jobId);
+  [a.workerId, a.friendId].filter(Boolean).forEach(wid=>{ const w=W(wid);
+    if(w){ w.ratingSum=(w.ratingSum||0)+n; w.ratingCount=(w.ratingCount||0)+1;
+      notify("worker", wid, `${t("notiRated")} ${job.title} (${"⭐".repeat(n)})`); } });
   save(); render();
 }
 function publish(){
