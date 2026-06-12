@@ -183,6 +183,18 @@ const EXTRA7 = {
     payNote:"সম্পন্ন হলে কর্মীকে অর্থ দেওয়া হয়।" },
 };
 for(const l in T) Object.assign(T[l], EXTRA7[l]||{});
+// worker wallet / earnings history
+const EXTRA8 = {
+  en:{ w_wallet:"Wallet", walletTitle:"Your earnings", totalEarned:"Total earned", gigsPaid:"Paid gigs",
+    noEarnings:"No paid gigs yet. Earnings show up here once an employer confirms you showed up.", payRef:"Ref" },
+  ms:{ w_wallet:"Dompet", walletTitle:"Pendapatan anda", totalEarned:"Jumlah pendapatan", gigsPaid:"Kerja dibayar",
+    noEarnings:"Belum ada kerja dibayar. Pendapatan dipaparkan di sini selepas majikan sahkan anda hadir.", payRef:"Ruj" },
+  zh:{ w_wallet:"钱包", walletTitle:"你的收入", totalEarned:"总收入", gigsPaid:"已付工作",
+    noEarnings:"还没有已付工作。雇主确认你出席后，收入会显示在这里。", payRef:"编号" },
+  bn:{ w_wallet:"ওয়ালেট", walletTitle:"আপনার আয়", totalEarned:"মোট আয়", gigsPaid:"পরিশোধিত কাজ",
+    noEarnings:"এখনো পরিশোধিত কাজ নেই। নিয়োগকর্তা উপস্থিতি নিশ্চিত করলে আয় এখানে দেখাবে।", payRef:"রেফ" },
+};
+for(const l in T) Object.assign(T[l], EXTRA8[l]||{});
 const PHOTOS = ["🧑","👨","👩","🧔","👧","👦","🧕","👳","🧑‍🦱","👨‍🦳","👩‍🦰","🧓"];
 const LANGS  = ["English","Malay","Chinese","Tamil","Bengali","Indonesian","Burmese","Nepali"];
 // ============ Job categories ============
@@ -265,8 +277,8 @@ function seed(){
     {id:uid(), jobId:"j1", workerId:"w3", friendId:"w5", status:"applied"},
     {id:uid(), jobId:"j1", workerId:"w4", friendId:null, status:"accepted"},
     {id:uid(), jobId:"j2", workerId:"me", friendId:null, status:"applied"},
-    {id:uid(), jobId:"j4", workerId:"me", friendId:null, status:"completed"},
-    {id:uid(), jobId:"j3", workerId:"w2", friendId:null, status:"completed", empRated:5},
+    {id:uid(), jobId:"j4", workerId:"me", friendId:null, status:"completed", paid:15, fee:2, payRef:"demo_seed01"},
+    {id:uid(), jobId:"j3", workerId:"w2", friendId:null, status:"completed", empRated:5, paid:90, fee:9, payRef:"demo_seed02"},
   ];
   DB.msgs = [ {id:uid(), jobId:"j1", workerId:"w4", from:"employer", text:"Hi, please come to the main gate at 7:45am.", ts:Date.now()-3600000} ];
   DB.notifs = [
@@ -339,6 +351,7 @@ const ICN = {
   post:    _ic('<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>'),
   store:   _ic('<path d="M4 10l1-5h14l1 5"/><path d="M5 10v9h14v-9"/><path d="M9 19v-5h6v5"/><path d="M4 10a3 3 0 0 0 6 0 3 3 0 0 0 4 0 3 3 0 0 0 6 0"/>'),
   bell:    _ic('<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.5 21a2 2 0 0 1-3 0"/>'),
+  wallet:  _ic('<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="16.5" cy="14.5" r="1.2"/>'),
 };
 
 // ============ Components ============
@@ -507,6 +520,26 @@ function workerApps(){
       </div>${rate}
     </div>`;
   }).join("");
+}
+
+// ---- Worker: wallet / earnings history ----
+function workerWallet(){
+  const w=me();
+  const paid=DB.apps.filter(a=>(a.workerId===S.workerId||a.friendId===S.workerId)&&a.status==="completed"&&a.paid).reverse();
+  const head=`<div class="card" style="text-align:center">
+    <div class="muted sm">${t("totalEarned")}</div>
+    <div style="font-weight:800;font-size:2.4rem;color:var(--brand);margin:2px 0">${rm(w.earned)}</div>
+    <div class="muted sm">💼 ${w.completed} ${t("gigsPaid")}</div>
+  </div>`;
+  if(!paid.length) return head+`<div class="empty">${t("noEarnings")}</div>`;
+  const rows=paid.map(a=>{ const job=J(a.jobId); if(!job) return ""; const per=payBreakdown(a).per;
+    return `<div class="card" style="padding:12px 14px">
+      <div class="jt"><div class="name" style="font-size:1rem">${CATS[job.cat||"general"]||"🧰"} ${esc(job.title)}</div>
+        <div class="pay" style="font-size:1.05rem;color:var(--brand)">+${rm(per)}</div></div>
+      <div class="meta"><span>🏢 ${esc(E(job.empId).biz)}</span><span>📅 ${esc(job.date)}</span><span>📍 ${esc(townName(job.town))}</span></div>
+      ${a.payRef?`<div class="muted xs" style="margin-top:4px">🔒 ${t("payRef")}: ${esc(a.payRef)}</div>`:""}
+    </div>`; }).join("");
+  return head+rows;
 }
 
 // ---- Worker: profile ----
@@ -800,7 +833,7 @@ function render(){
      <button data-act="role" data-v="employer" class="${S.role==="employer"?"on":""}">${t("roleEmployer")}</button>`;
   // nav
   const tabs = S.role==="worker"
-    ? [["jobs",ICN.jobs,t("w_jobs")],["apps",ICN.apps,t("w_apps")],["profile",ICN.profile,t("w_profile")]]
+    ? [["jobs",ICN.jobs,t("w_jobs")],["apps",ICN.apps,t("w_apps")],["wallet",ICN.wallet,t("w_wallet")],["profile",ICN.profile,t("w_profile")]]
     : [["post",ICN.post,t("e_post")],["jobs",ICN.apps,t("e_jobs")],["biz",ICN.store,t("e_biz")]];
   if(!tabs.some(x=>x[0]===S.tab)) S.tab=tabs[0][0];
   document.getElementById("nav").innerHTML=tabs.map(([k,ic,lab])=>
@@ -810,6 +843,7 @@ function render(){
   if(S.role==="worker"){
     if(S.tab==="jobs") html=workerJobs();
     else if(S.tab==="apps") html=workerApps();
+    else if(S.tab==="wallet") html=workerWallet();
     else html=workerProfile();
   } else {
     if(S.tab==="post") html=employerPost();
