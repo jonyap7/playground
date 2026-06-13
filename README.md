@@ -60,12 +60,26 @@ to iterate on; it can be ported to React components incrementally as it grows.
 4. **Applicants by reliability** — employer sees each applicant's ⭐ Reliability
    Score, completed jobs and no-shows, and Accepts/Declines.
 5. **Chat** — a simple thread per applicant.
-6. **Ratings & Reliability** — employer marks "✓ Showed up" or "No-show", which
-   updates the worker's Reliability Score. Workers rate employers back (★).
+6. **Two-way ratings & Reliability** — employer marks "✓ Showed up" or "No-show"
+   (updating Reliability), then rates the worker ★1–5. That ★ score shows on the
+   worker's applicant card and profile, so the next employer trusts them faster.
+   Workers rate employers back (★) too — reputation flows both ways.
 
 ## Key ideas
 
 - **Reliability over resumes** — `Reliability % = completed / (completed + no-shows)`.
+- **Two-way reputation** — workers rate employers *and* employers rate workers
+  (`★ = ratingSum / ratingCount`). The closed loop is the marketplace's trust moat.
+- **Verified workers** — phone-verify flow (enter number → 6-digit code) earns a
+  ✔ Verified badge shown on the worker's profile, applicant card, and Work-Buddy
+  picker. `sendOtp()` is the single seam to wire a real SMS provider (Twilio /
+  Supabase Edge Function); the demo surfaces the code on-screen instead of texting it.
+- **Pay on completion + take-rate** — marking a worker "✓ Showed up" opens a payment
+  sheet (worker payout · 10% `PLATFORM_FEE` · total), then records earnings on the
+  worker and payouts on the employer. `chargeEmployer()` is the single seam for a real
+  gateway (Stripe / local rails) — that completed-gig fee is the core revenue model.
+- **Worker Wallet** — a dedicated tab showing total earned, paid-gig count, and an
+  itemized history of each paid shift (job, employer, amount, payment ref).
 - **Work Buddy mode** — apply with a friend; a buddy application fills 2 spots.
 - **Urgent jobs** — `⚡ Need staff today / tomorrow` are pinned to the top.
 - **Nearby** — distance filtering (within 2 / 5 / 10 km), with optional **live GPS**
