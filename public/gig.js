@@ -195,6 +195,14 @@ const EXTRA8 = {
     noEarnings:"এখনো পরিশোধিত কাজ নেই। নিয়োগকর্তা উপস্থিতি নিশ্চিত করলে আয় এখানে দেখাবে।", payRef:"রেফ" },
 };
 for(const l in T) Object.assign(T[l], EXTRA8[l]||{});
+// employer receipts / spend history
+const EXTRA9 = {
+  en:{ receipts:"Receipts", noReceipts:"No payments yet — receipts appear here after you pay a worker.", totalFees:"Platform fees" },
+  ms:{ receipts:"Resit", noReceipts:"Belum ada bayaran — resit dipaparkan di sini selepas anda bayar pekerja.", totalFees:"Yuran platform" },
+  zh:{ receipts:"收据", noReceipts:"还没有付款 — 付款给工人后收据会显示在这里。", totalFees:"平台费" },
+  bn:{ receipts:"রসিদ", noReceipts:"এখনো পেমেন্ট নেই — কর্মীকে পরিশোধের পর রসিদ এখানে দেখাবে।", totalFees:"প্ল্যাটফর্ম ফি" },
+};
+for(const l in T) Object.assign(T[l], EXTRA9[l]||{});
 const PHOTOS = ["🧑","👨","👩","🧔","👧","👦","🧕","👳","🧑‍🦱","👨‍🦳","👩‍🦰","🧓"];
 const LANGS  = ["English","Malay","Chinese","Tamil","Bengali","Indonesian","Burmese","Nepali"];
 // ============ Job categories ============
@@ -680,11 +688,28 @@ function employerBiz(){
     <div class="stat"><span class="muted">✅ ${t("completionRate")}</span><b>${rate==null?"—":rate+"%"}</b></div>
     <button class="btn alt" data-act="editEmployer" style="margin-top:12px">✏️ ${t("editBiz")}</button>
   </div>
+  ${employerReceipts()}
   ${plansCard(plan)}
   <div class="card"><div class="row">
     <button class="ghost" data-act="loadDemo">${t("loadDemo")}</button>
     <button class="ghost" data-act="clearAll">${t("clearAll")}</button>
   </div>${cloudLine()}</div>`;
+}
+// itemized spend history for the employer — mirrors the worker Wallet
+function employerReceipts(){
+  const e=E(S.employerId), jobs=empJobs(e.id);
+  const paid=DB.apps.filter(a=>jobs.some(j=>j.id===a.jobId)&&a.status==="completed"&&a.paid).reverse();
+  const head=`<div class="card"><h3>🧾 ${t("receipts")}</h3>
+    <div class="stat"><span class="muted">💰 ${t("paidOut")}</span><b>${rm(e.spent)}</b></div>
+    <div class="stat"><span class="muted">⚙️ ${t("totalFees")}</span><b>${rm(e.fees)}</b></div>`;
+  if(!paid.length) return head+`<div class="sm muted" style="margin-top:8px">${t("noReceipts")}</div></div>`;
+  const rows=paid.map(a=>{ const job=J(a.jobId); if(!job) return ""; const w=W(a.workerId), friend=a.friendId?W(a.friendId):null;
+    return `<div style="border-top:1px solid var(--line);padding:10px 0">
+      <div class="jt"><div class="name" style="font-size:.95rem">${esc(job.title)} · ${esc(w?w.name:"—")}${friend?" +"+esc(friend.name):""}</div>
+        <div class="pay" style="font-size:1rem">${rm(a.paid)}</div></div>
+      <div class="muted xs">📅 ${esc(job.date)} · ${t("platformFee")} ${rm(a.fee)} · ${t("payRef")}: ${esc(a.payRef||"—")}</div>
+    </div>`; }).join("");
+  return head+rows+`</div>`;
 }
 function plansCard(current){
   const tiers=[

@@ -80,6 +80,8 @@ to iterate on; it can be ported to React components incrementally as it grows.
   gateway (Stripe / local rails) — that completed-gig fee is the core revenue model.
 - **Worker Wallet** — a dedicated tab showing total earned, paid-gig count, and an
   itemized history of each paid shift (job, employer, amount, payment ref).
+- **Employer Receipts** — the Business screen mirrors the Wallet with total spent,
+  platform fees, and an itemized receipt per paid worker (for the employer's books).
 - **Work Buddy mode** — apply with a friend; a buddy application fills 2 spots.
 - **Urgent jobs** — `⚡ Need staff today / tomorrow` are pinned to the top.
 - **Nearby** — distance filtering (within 2 / 5 / 10 km), with optional **live GPS**
